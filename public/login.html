@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Login - Shop</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+ .login-card {
+    background: white;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 35px 28px;
+    position: relative;
+  }
+ .brand {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+ .brand h1 {
+    color: #ff5722;
+    font-size: 26px;
+    margin-bottom: 6px;
+  }
+ .brand p {
+    color: #777;
+    font-size: 13px;
+  }
+
+  /* Avatar */
+ .avatar-section {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  #avatarPreview {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #ff5722;
+    background: #f5f5f5;
+    margin-bottom: 10px;
+  }
+ .upload-label {
+    display: inline-block;
+    padding: 7px 14px;
+    background: #fff3e0;
+    color: #ff5722;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+ .upload-label:hover { background: #ffe0b2; }
+  #avatarUpload { display: none; }
+
+  /* Form */
+ .form-group {
+    margin-bottom: 18px;
+  }
+ .form-group label {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+ .required::after {
+    content: " *";
+    color: #e53935;
+  }
+ .form-group input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border 0.2s;
+  }
+ .form-group input:focus {
+    border-color: #ff5722;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255,87,34,0.1);
+  }
+ .error {
+    color: #e53935;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+  }
+
+  /* Button */
+ .btn-login {
+    width: 100%;
+    padding: 14px;
+    background: #ff5722;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+ .btn-login:hover { background: #e64a19; }
+ .btn-login:active { transform: scale(0.98); }
+ .btn-login:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Contact */
+ .contact-footer {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+    line-height: 1.7;
+  }
+ .contact-footer a {
+    color: #ff5722;
+    text-decoration: none;
+    font-weight: 500;
+  }
+ .contact-footer a:hover { text-decoration: underline; }
+
+  /* Success Popup */
+  @keyframes scaleIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="brand">
+    <h1>🛍️ Welcome</h1>
+    <p>Login to continue shopping</p>
+  </div>
+
+  <form id="loginForm">
+    <!-- Profile Picture -->
+    <div class="avatar-section">
+      <img id="avatarPreview" src="https://via.placeholder.com/110x110/E0E0E0/9E9E9E?text=Photo" alt="Profile">
+      <br>
+      <label for="avatarUpload" class="upload-label">Upload Photo</label>
+      <input type="file" id="avatarUpload" accept="image/*">
+    </div>
+
+    <!-- Name -->
+    <div class="form-group">
+      <label class="required">Full Name</label>
+      <input type="text" id="fullName" placeholder="Enter your full name" autocomplete="name">
+      <div class="error" id="nameError">Name must be at least 2 characters</div>
+    </div>
+
+    <!-- Phone -->
+    <div class="form-group">
+      <label class="required">Phone Number</label>
+      <input type="tel" id="phoneNumber" placeholder="09031234567" maxlength="11" autocomplete="tel">
+      <div class="error" id="phoneError">Enter exactly 11 digits</div>
+    </div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label>Email - Optional</label>
+      <input type="email" id="emailAddress" placeholder="you@example.com" autocomplete="email">
+    </div>
+
+    <button type="submit" class="btn-login" id="submitBtn">Login / Continue</button>
+  </form>
+
+  <div class="contact-footer">
+    Need help?<br>
+    Email: <a href="mailto:amirmurtala55@gmail.com">amirmurtala55@gmail.com</a><br>
+    WhatsApp only: <a href="https://wa.me/2349036912425" target="_blank">09036912425</a>
+  </div>
+</div>
+
+<script>
+const API = "https://shopping-5f6c.onrender.com";
+
+const form = document.getElementById("loginForm");
+const nameInput = document.getElementById("fullName");
+const phoneInput = document.getElementById("phoneNumber");
+const emailInput = document.getElementById("emailAddress");
+const avatarInput = document.getElementById("avatarUpload");
+const avatarPreview = document.getElementById("avatarPreview");
+const submitBtn = document.getElementById("submitBtn");
+
+let avatarData = "";
+
+// ================= AVATAR =================
+avatarInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    avatarData = ev.target.result;
+    avatarPreview.src = avatarData;
+  };
+  reader.readAsDataURL(file);
+});
+
+// ================= PHONE CLEAN =================
+phoneInput.addEventListener("input", () => {
+  phoneInput.value = phoneInput.value.replace(/\D/g, "").slice(0, 11);
+});
+
+// ================= CHECK SESSION ON LOAD =================
+window.addEventListener("DOMContentLoaded", async () => {
+  const saved = localStorage.getItem("shop_user");
+
+  if (!saved) return;
+
+  try {
+    const user = JSON.parse(saved);
+
+    const res = await fetch(`${API}/api/user/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: user.phone })
+    });
+
+    if (res.ok) {
+      showPopup("Welcome back " + user.name, true);
+    } else {
+      localStorage.removeItem("shop_user");
+    }
+
+  } catch (err) {
+    console.log("Session check failed");
+  }
+});
+
+// ================= LOGIN =================
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+  const email = emailInput.value.trim();
+
+  if (name.length < 2) return alert("Enter valid name");
+  if (phone.length !== 11) return alert("Phone must be 11 digits");
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Processing...";
+
+  try {
+    const res = await fetch(`${API}/api/user/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        phone,
+        email,
+        avatar: avatarData
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error);
+
+    localStorage.setItem("shop_user", JSON.stringify({
+      name,
+      phone,
+      email,
+      avatar: avatarData
+    }));
+
+    if (data.exists) {
+      showPopup("Welcome back " + name, true);
+    } else {
+      showPopup("Account created successfully", false);
+    }
+
+  } catch (err) {
+    alert("Server not connected");
+    console.error(err);
+  }
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = "Login / Continue";
+});
+
+// ================= POPUP =================
+function showPopup(msg, login) {
+  document.body.insertAdjacentHTML("beforeend", `
+    <div style="
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.6);
+      display:flex;align-items:center;justify-content:center;
+      z-index:9999">
+      <div style="background:#fff;padding:30px;border-radius:15px;text-align:center">
+        <h2>${login ? "👋 Welcome Back" : "🎉 Success"}</h2>
+        <p>${msg}</p>
+        <p style="color:#999">Redirecting...</p>
+      </div>
+    </div>
+  `);
+
+  setTimeout(() => {
+    window.location.href = "/user_products.html";
+  }, 2000);
+}
+</script>
+</body>
+</html>

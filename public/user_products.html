@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luxe Shop</title>
+
+<style>
+/* ===== YOUR ORIGINAL STYLES (UNCHANGED FOR SIMPLICITY) ===== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root{
+  --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass: rgba(255,255,255,0.7);
+  --shadow: 0 8px 32px rgba(31,38,135,0.15);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+
+body{
+  background:#f0f2f5;
+  min-height:100vh;
+  padding:30px 20px;
+}
+
+h1{
+  text-align:center;
+  font-size:2.5rem;
+  font-weight:700;
+  background:var(--gradient);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:40px;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:1fr 340px;
+  gap:25px;
+  max-width:1400px;
+  margin:auto;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:25px;
+}
+
+.card{
+  background:var(--glass);
+  backdrop-filter:blur(10px);
+  border-radius:20px;
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+
+.card img{
+  width:100%;
+  height:200px;
+  object-fit:cover;
+  border-radius:15px;
+}
+
+.card h3{margin:10px 0}
+
+.price{
+  font-size:20px;
+  font-weight:700;
+  color:#5a67d8;
+}
+
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:var(--gradient);
+  color:#fff;
+  cursor:pointer;
+  margin-top:10px;
+}
+
+.cart-box{
+  background:var(--glass);
+  padding:20px;
+  border-radius:20px;
+  position:sticky;
+  top:20px;
+}
+
+.cart-item{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 0;
+}
+
+.remove{
+  background:red;
+  color:#fff;
+  border:none;
+  border-radius:50%;
+  width:22px;
+  height:22px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>✨ Luxe Collection</h1>
+
+<div class="layout">
+
+  <!-- PRODUCTS -->
+  <div>
+    <div id="products">Loading products...</div>
+  </div>
+
+  <!-- CART -->
+  <div class="cart-box">
+    <h3>🛒 Cart</h3>
+    <div id="cart"></div>
+    <h2 id="total">Total: ₦0</h2>
+    <button class="btn" id="checkoutBtn" onclick="checkout()">Checkout</button>
+  </div>
+
+</div>
+
+<script>
+const API = window.location.origin; // works on Render automatically
+
+let products = [];
+let cart = [];
+
+// =========================
+// LOAD PRODUCTS FROM SERVER
+// =========================
+async function loadProducts(){
+  try{
+    const res = await fetch(`${API}/api/products`);
+    const data = await res.json();
+
+    products = Array.isArray(data) ? data : [];
+
+    renderProducts();
+  } catch(err){
+    document.getElementById('products').innerHTML =
+      "<p>Failed to load products</p>";
+  }
+}
+
+// =========================
+// RENDER PRODUCTS
+// =========================
+function renderProducts(){
+  const el = document.getElementById('products');
+
+  if(!products.length){
+    el.innerHTML = "<p>No products yet</p>";
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="grid">
+      ${products.map(p => `
+        <div class="card">
+          <img src="${p.img || 'https://via.placeholder.com/300'}" />
+          <h3>${p.name}</h3>
+          <p class="price">₦${Number(p.price).toLocaleString()}</p>
+          <p>${p.desc || ''}</p>
+          <button class="btn" onclick="addToCart('${p.id}')">
+            Add to Cart
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// =========================
+// CART LOGIC (FIXED)
+// =========================
+function addToCart(id){
+  const product = products.find(p => String(p.id) === String(id));
+  if(!product) return;
+
+  cart.push(product);
+  renderCart();
+}
+
+function removeFromCart(index){
+  cart.splice(index,1);
+  renderCart();
+}
+
+// =========================
+// RENDER CART
+// =========================
+function renderCart(){
+  const el = document.getElementById('cart');
+  const totalEl = document.getElementById('total');
+
+  if(!cart.length){
+    el.innerHTML = "<p>Cart empty</p>";
+    totalEl.innerText = "Total: ₦0";
+    return;
+  }
+
+  el.innerHTML = cart.map((c,i)=>`
+    <div class="cart-item">
+      <span>${c.name}</span>
+      <span>
+        ₦${Number(c.price).toLocaleString()}
+        <button class="remove" onclick="removeFromCart(${i})">×</button>
+      </span>
+    </div>
+  `).join('');
+
+  const total = cart.reduce((a,b)=>a + Number(b.price),0);
+  totalEl.innerText = "Total: ₦" + total.toLocaleString();
+}
+
+// =========================
+// CHECKOUT (CONNECTED TO SERVER)
+// =========================
+async function checkout(){
+  if(!cart.length){
+    alert("Cart empty");
+    return;
+  }
+
+  const btn = document.getElementById("checkoutBtn");
+  btn.disabled = true;
+  btn.innerText = "Processing...";
+
+  const user = JSON.parse(localStorage.getItem("shop_user") || "{}");
+
+  const total = cart.reduce((a,b)=>a + Number(b.price),0);
+
+  try{
+    const res = await fetch(`${API}/api/order`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        customer: user.name || "Guest",
+        phone: user.phone || "",
+        items: cart,
+        total
+      })
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+      alert("Order placed! ID: " + data.orderId);
+      cart = [];
+      renderCart();
+    }else{
+      alert(data.error || "Failed");
+    }
+
+  }catch(err){
+    alert("Network error");
+  }
+
+  btn.disabled = false;
+  btn.innerText = "Checkout";
+}
+
+// =========================
+// INIT
+// =========================
+loadProducts();
+setInterval(loadProducts, 15000);
+
+</script>
+
+</body>
+</html>
