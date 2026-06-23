@@ -128,6 +128,12 @@ app.get('/shop', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'user_products.html'));
 });
 
+app.get('/api/admin/auth', (req,res)=>{
+  res.json({
+    status:'working'
+  });
+});
+
 app.post('/api/admin/auth', (req, res) => {
 
   const { password } = req.body;
