@@ -205,18 +205,16 @@ async function loadProducts() {
 
   const products = res.data || [];
 
-  document.getElementById("productList").innerHTML =
-    products.length ? products.map(p => `
-      <div class="product-item">
-        <img src="${p.img || 'https://via.placeholder.com/60'}">
-        <div class="product-info">
-          <b>${p.name}</b>
-          <small>₦${Number(p.price || 0).toLocaleString()}</small>
-        </div>
-        <button class="danger" onclick="deleteProduct('${p.id}')">X</button>
-      </div>
-    `).join("") : "<p>No products yet</p>";
-}
+ document.getElementById("productList").innerHTML =
+products.map(p => `
+<div class="product-item">
+  <img src="${p.img || 'https://via.placeholder.com/60'}">
+  <div class="product-info">
+    <b>${p.name}</b>
+    <small>₦${Number(p.price || 0).toLocaleString()}</small>
+  </div>
+</div>
+`).join('');
 
 /* =======================
    ADD PRODUCT
