@@ -174,140 +174,71 @@ Loading dashboard...
 async function manufacturerLogin(){
 
   const password =
-    document
-      .getElementById(
-        'manufacturerPassword'
-      )
-      .value
-      .trim();
+    document.getElementById(
+      'manufacturerPassword'
+    ).value.trim();
 
   if(!password){
-
-    alert(
-      'Enter password'
-    );
-
+    alert('Enter password');
     return;
   }
 
   const btn =
-    document.getElementById(
-      'loginBtn'
-    );
+    document.getElementById('loginBtn');
 
   btn.disabled = true;
-  btn.innerHTML =
-    'Checking...';
+  btn.textContent = 'Checking...';
 
   try{
 
-    const res =
-      await fetch(
-        API + '/api/admin/auth',
-        {
-          method:'POST',
-          headers:{
-            'Content-Type':
-            'application/json'
-          },
-          body:JSON.stringify({
-            password
-          })
-        }
+    const res = await fetch(
+      'https://dream-yinl.onrender.com/api/admin/auth',
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          password
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if(data.ok){
+
+      sessionStorage.setItem(
+        'manufacturer_auth',
+        'true'
       );
 
-    const data =
-      await res.json();
+      document.getElementById(
+        'authModal'
+      ).style.display = 'none';
 
-    if(!data.ok){
-
-      btn.disabled=false;
-      btn.innerHTML='Login';
-
-      document
-        .getElementById(
-          'authError'
-        )
-        .style.display='block';
+      loadProducts();
+      loadOrders();
 
       return;
     }
 
-    sessionStorage.setItem(
-      'manufacturer_auth',
-      'true'
-    );
-
-    document
-      .getElementById(
-        'successPopup'
-      )
-      .style.display='flex';
-
-    setTimeout(async()=>{
-
-      document
-        .getElementById(
-          'authModal'
-        )
-        .style.display='none';
-
-      document
-        .getElementById(
-          'successPopup'
-        )
-        .style.display='none';
-
-      await loadProducts();
-      await loadOrders();
-
-    },1200);
+    document.getElementById(
+      'authError'
+    ).style.display = 'block';
 
   }catch(err){
+
+    console.error(err);
 
     alert(
       'Server not connected'
     );
-
-    console.error(err);
-
-  }finally{
-
-    btn.disabled=false;
-    btn.innerHTML='Login';
-
   }
 
+  btn.disabled = false;
+  btn.textContent = 'Login';
 }
-window.onload = async ()=>{
-
-  const loggedIn =
-    sessionStorage.getItem(
-      'manufacturer_auth'
-    );
-
-  if(loggedIn === 'true'){
-
-    document
-      .getElementById(
-        'authModal'
-      )
-      .style.display='none';
-
-    await loadProducts();
-    await loadOrders();
-
-    return;
-  }
-
-  document
-    .getElementById(
-      'authModal'
-    )
-    .style.display='flex';
-
-};
-
 /* =======================
    API BASE (IMPORTANT FIX)
 ======================= */
