@@ -342,7 +342,7 @@ async function loadProducts() {
 
       <button
         class="danger"
-        onclick="deleteProduct('${p.id}')"
+       onclick="deleteProduct('${p.id || p._id}')"
       >
         Delete
       </button>
@@ -411,14 +411,12 @@ async function addProduct() {
     }
   );
 
-  const data =
-    await res.json();
+  const data = await res.json();
 
-  if (!data.ok) {
-
-    alert(
-      data.error || "Save failed"
-    );
+if (res.ok !== true && data.ok !== true && data.success !== true) {
+  alert(data.error || "Save failed");
+  return;
+}
 
     return;
   }
@@ -431,24 +429,23 @@ async function addProduct() {
   document.getElementById("pImgFile").value = "";
 
   loadProducts();
+cache.products = { data: null, time: 0 };
 }
 
 async function deleteProduct(id) {
+  if (!id) {
+    alert("Invalid product ID");
+    return;
+  }
 
-  await fetch(
-    API + "/api/products/delete",
-    {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        id
-      })
-    }
-  );
+  await fetch(API + "/api/products/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id })
+  });
 
   loadProducts();
+cache.products = { data: null, time: 0 };
 }
 
 /* ==========================
@@ -529,6 +526,7 @@ async function updateStatus(id) {
   );
 
   loadOrders();
+cache.orders = { data: null, time: 0 };
 }
 
 /* ==========================
