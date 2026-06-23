@@ -125,7 +125,9 @@ padding:35px;
 border-radius:20px;
 text-align:center;
 ">
-
+<button onclick="logout()">
+Logout
+</button>
 <div style="font-size:60px">
 ✅
 </div>
@@ -169,215 +171,402 @@ Loading dashboard...
 
 </div>
 
-</script>
+<script>
 
-/* =======================
-   API BASE (IMPORTANT FIX)
-======================= */
 const API = "https://dream-yinl.onrender.com";
 
-/* =======================
-   SAFE FETCH (NO CRASH)
-======================= */
-async function safeFetch(url, options = {}) {
-  try {
-    const res = await fetch(url, options);
-    const text = await res.text();
+/* ==========================
+   AUTH
+========================== */
 
-    try {
-      return { ok: res.ok, data: JSON.parse(text) };
-    } catch {
-      console.error("Invalid JSON:", text);
-      return { ok: false, data: [] };
-    }
+async function manufacturerLogin() {
 
-  } catch (err) {
-    console.error("Network error:", err);
-    return { ok: false, data: [] };
-  }
-}
+  const password =
+    document.getElementById("manufacturerPassword").value.trim();
 
-/* =======================
-   LOAD PRODUCTS
-======================= */
-async function loadProducts() {
-  const res = await safeFetch(`${API}/api/products`);
-
-  const products = res.data || [];
-
- document.getElementById("productList").innerHTML =
-products.map(p => `
-<div class="product-item">
-  <img src="${p.img || 'https://via.placeholder.com/60'}">
-  <div class="product-info">
-    <b>${p.name}</b>
-    <small>₦${Number(p.price || 0).toLocaleString()}</small>
-  </div>
-</div>
-`).join('');
-
-/* =======================
-   ADD PRODUCT
-======================= */
-async function addProduct(){
-
-  const name =
-    document.getElementById(
-      'pName'
-    ).value.trim();
-
-  const price =
-    document.getElementById(
-      'pPrice'
-    ).value.trim();
-
-  const desc =
-    document.getElementById(
-      'pDesc'
-    ).value.trim();
-
-  if(!name || !price){
-    alert(
-      'Name and Price required'
-    );
+  if (!password) {
+    alert("Enter password");
     return;
   }
 
-  let img='';
+  const btn =
+    document.getElementById("loginBtn");
 
-  const file =
-    document.getElementById(
-      'pImgFile'
-    ).files[0];
+  btn.disabled = true;
+  btn.innerText = "Checking...";
 
-  if(file){
+  try {
 
-    img = await new Promise(
-      resolve=>{
-
-        const reader =
-          new FileReader();
-
-        reader.onload =
-          e =>
-            resolve(
-              e.target.result
-            );
-
-        reader.readAsDataURL(
-          file
-        );
-      }
-    );
-  }
-
-  const res =
-    await fetch(
-      API +
-      '/api/products/save',
+    const res = await fetch(
+      API + "/api/admin/auth",
       {
-        method:'POST',
-        headers:{
-          'Content-Type':
-          'application/json'
+        method: "POST",
+        headers: {
+          "Content-Type":"application/json"
         },
-        body:JSON.stringify({
-          id:Date.now().toString(),
-          name,
-          price:Number(price),
-          desc,
-          img
+        body: JSON.stringify({
+          password
         })
       }
     );
 
+    const data = await res.json();
+
+    if (!data.ok) {
+
+      document.getElementById(
+        "authError"
+      ).style.display = "block";
+
+      btn.disabled = false;
+      btn.innerText = "Login";
+
+      return;
+    }
+
+    sessionStorage.setItem(
+      "manufacturer_auth",
+      "true"
+    );
+
+    document.getElementById(
+      "successPopup"
+    ).style.display = "flex";
+
+    setTimeout(async () => {
+
+      document.getElementById(
+        "authModal"
+      ).style.display = "none";
+
+      document.getElementById(
+        "successPopup"
+      ).style.display = "none";
+
+      await loadProducts();
+      await loadOrders();
+
+    }, 1200);
+
+  } catch(err) {
+
+    console.error(err);
+
+    alert("Server not connected");
+
+  }
+
+  btn.disabled = false;
+  btn.innerText = "Login";
+}
+
+/* ==========================
+   SAFE FETCH
+========================== */
+
+async function safeFetch(url, options = {}) {
+
+  try {
+
+    const res = await fetch(url, options);
+
+    const text = await res.text();
+
+    try {
+
+      return {
+        ok: res.ok,
+        data: JSON.parse(text)
+      };
+
+    } catch {
+
+      console.error(text);
+
+      return {
+        ok:false,
+        data:[]
+      };
+    }
+
+  } catch(err) {
+
+    console.error(err);
+
+    return {
+      ok:false,
+      data:[]
+    };
+  }
+}
+
+/* ==========================
+   PRODUCTS
+========================== */
+
+async function loadProducts() {
+
+  const res =
+    await safeFetch(
+      API + "/api/products"
+    );
+
+  const products =
+    res.data || [];
+
+  document.getElementById(
+    "productList"
+  ).innerHTML =
+
+  products.length ?
+
+  products.map(p => `
+
+    <div class="product-item">
+
+      <img
+        src="${p.img || 'https://via.placeholder.com/60'}"
+      >
+
+      <div class="product-info">
+
+        <b>${p.name}</b>
+
+        <br>
+
+        <small>
+          ₦${Number(p.price || 0).toLocaleString()}
+        </small>
+
+      </div>
+
+      <button
+        class="danger"
+        onclick="deleteProduct('${p.id}')"
+      >
+        Delete
+      </button>
+
+    </div>
+
+  `).join("")
+
+  :
+
+  "<p>No products</p>";
+}
+
+async function addProduct() {
+
+  const name =
+    document.getElementById("pName").value.trim();
+
+  const price =
+    document.getElementById("pPrice").value.trim();
+
+  const desc =
+    document.getElementById("pDesc").value.trim();
+
+  if (!name || !price) {
+
+    alert("Name and price required");
+
+    return;
+  }
+
+  let img = "";
+
+  const file =
+    document.getElementById("pImgFile").files[0];
+
+  if (file) {
+
+    img = await new Promise(resolve => {
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        e => resolve(e.target.result);
+
+      reader.readAsDataURL(file);
+
+    });
+  }
+
+  const res = await fetch(
+    API + "/api/products/save",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        id: Date.now().toString(),
+        name,
+        price,
+        desc,
+        img
+      })
+    }
+  );
+
   const data =
     await res.json();
 
-  if(!res.ok){
+  if (!data.ok) {
 
     alert(
-      data.error ||
-      'Save Failed'
+      data.error || "Save failed"
     );
 
     return;
   }
 
-  alert(
-    'Product Saved'
+  alert("Product saved");
+
+  document.getElementById("pName").value = "";
+  document.getElementById("pPrice").value = "";
+  document.getElementById("pDesc").value = "";
+  document.getElementById("pImgFile").value = "";
+
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+
+  await fetch(
+    API + "/api/products/delete",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        id
+      })
+    }
   );
 
   loadProducts();
 }
-/* =======================
-   DELETE PRODUCT
-======================= */
-async function deleteProduct(id) {
-  await safeFetch(`${API}/api/products/delete`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ id })
-  });
 
-  loadProducts();
-}
+/* ==========================
+   ORDERS
+========================== */
 
-/* =======================
-   LOAD ORDERS
-======================= */
 async function loadOrders() {
-  const res = await safeFetch(`${API}/api/orders`);
 
-  const orders = res.data || [];
+  const res =
+    await safeFetch(
+      API + "/api/orders"
+    );
 
-  document.getElementById("orders").innerHTML =
-    orders.length ? orders.map(o => `
-      <div class="product-item">
-        <div class="product-info">
-          <b>${o.customer}</b>
-          <small>${o.phone}</small><br>
-          <small>₦${Number(o.total || 0).toLocaleString()}</small><br>
-          <small>Status: ${o.status}</small>
-        </div>
+  const orders =
+    res.data || [];
 
-        <button onclick="updateStatus('${o.id}')">
-          Done
-        </button>
+  document.getElementById(
+    "orders"
+  ).innerHTML =
+
+  orders.length ?
+
+  orders.map(o => `
+
+    <div class="product-item">
+
+      <div class="product-info">
+
+        <b>${o.customer}</b>
+
+        <br>
+
+        <small>${o.phone}</small>
+
+        <br>
+
+        <small>
+          ₦${Number(o.total || 0).toLocaleString()}
+        </small>
+
+        <br>
+
+        <small>
+          ${o.status}
+        </small>
+
       </div>
-    `).join("") : "<p>No orders yet</p>";
+
+      <button
+        onclick="updateStatus('${o.id}')"
+      >
+        Done
+      </button>
+
+    </div>
+
+  `).join("")
+
+  :
+
+  "<p>No orders</p>";
 }
 
-/* =======================
-   UPDATE ORDER STATUS
-======================= */
 async function updateStatus(id) {
-  await safeFetch(`${API}/api/orders/update`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      id,
-      status: "delivered"
-    })
-  });
+
+  await fetch(
+    API + "/api/orders/update",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        id,
+        status:"delivered"
+      })
+    }
+  );
 
   loadOrders();
 }
 
-function logout(){
+/* ==========================
+   LOGOUT
+========================== */
+
+function logout() {
 
   sessionStorage.removeItem(
-    'manufacturer_auth'
+    "manufacturer_auth"
   );
 
   location.reload();
-
 }
-/* =======================
+
+/* ==========================
    INIT
-======================= */
+========================== */
+
+window.onload = async () => {
+
+  const auth =
+    sessionStorage.getItem(
+      "manufacturer_auth"
+    );
+
+  if (auth === "true") {
+
+    document.getElementById(
+      "authModal"
+    ).style.display = "none";
+
+    await loadProducts();
+    await loadOrders();
+
+  }
+};
 
 </script>
-
 </body>
 </html>
