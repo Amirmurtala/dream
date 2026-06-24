@@ -241,12 +241,12 @@ app.get('/api/products', async (req, res) => {
     const rows = await sheet.getRows();
 
     const products = rows.map(r => ({
-      id: r.id,
-      name: r.name,
+      id: r.id || r._rawData?.[0],
+      name: r.name || "Unnamed product",
       price: Number(r.price || 0),
-      desc: r.desc,
-      img: r.img
-    }));
+      desc: r.desc || "",
+      img: r.img || ""
+    })).filter(p => p.id); // remove broken rows
 
     res.json(products);
 
@@ -255,79 +255,51 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-app.post('/api/products/save', async (req,res)=>{
-
-  try{
-
-    const sheet =
-      await getSheet('Products');
+app.post('/api/products/save', async (req, res) => {
+  try {
+    const sheet = await getSheet('Products');
 
     const product = {
-      id:
-        String(
-          req.body.id ||
-          Date.now()
-        ),
-
-      name:
-        req.body.name || '',
-
-      price:
-        req.body.price || '',
-
-      desc:
-        req.body.desc || '',
-
-      img:
-        req.body.img || ''
+      id: String(req.body.id || Date.now()),
+      name: req.body.name || "Unnamed product",
+      price: Number(req.body.price || 0),
+      desc: req.body.desc || "",
+      img: req.body.img || ""
     };
 
-    const rows =
-      await sheet.getRows();
+    const rows = await sheet.getRows();
 
-    const existing =
-      rows.find(
-        r => String(r.id) ===
-        String(product.id)
-      );
+    const existing = rows.find(
+      r => String(r.id) === product.id
+    );
 
-    if(existing){
-
-      existing.name =
-        product.name;
-
-      existing.price =
-        product.price;
-
-      existing.desc =
-        product.desc;
-
-      existing.img =
-        product.img;
+    if (existing) {
+      existing.name = product.name;
+      existing.price = product.price;
+      existing.desc = product.desc;
+      existing.img = product.img;
 
       await existing.save();
 
       return res.json({
-        ok:true,
-        action:'updated'
+        ok: true,
+        action: 'updated'
       });
     }
 
     await sheet.addRow(product);
 
     res.json({
-      ok:true,
-      action:'created'
+      ok: true,
+      action: 'created'
     });
 
-  }catch(err){
-
+  } catch (err) {
     res.status(500).json({
-      error:err.message
+      ok: false,
+      error: err.message
     });
-
   }
-
 });
 
 app.post('/api/products/delete', async (req, res) => {
@@ -335,8 +307,13 @@ app.post('/api/products/delete', async (req, res) => {
     const sheet = await getSheet('Products');
     const rows = await sheet.getRows();
 
-    const row = rows.find(r => r.id === req.body.id);
-    if (!row) return res.status(404).json({ error: "not found" });
+    const id = String(req.body.id);
+
+    const row = rows.find(r => String(r.id) === id);
+
+    if (!row) {
+      return res.status(404).json({ error: "not found" });
+    }
 
     await row.delete();
     res.json({ ok: true });
