@@ -235,6 +235,26 @@ app.post('/api/user/session', async (req, res) => {
 /* =======================
    PRODUCTS
 ======================= */
+app.get('/api/products', async (req, res) => {
+  try {
+    const sheet = await getSheet('Products');
+    const rows = await sheet.getRows();
+
+    const products = rows.map(r => ({
+      id: r.id || r._rawData?.[0],
+      name: r.name || "Unnamed product",
+      price: Number(r.price || 0),
+      desc: r.desc || "",
+      img: r.img || ""
+    })).filter(p => p.id); // remove broken rows
+
+    res.json(products);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/products/save', async (req, res) => {
 
   try {
@@ -279,6 +299,7 @@ app.post('/api/products/save', async (req, res) => {
   }
 
 });
+
 app.post('/api/products/delete', async (req, res) => {
 
   try {
@@ -315,6 +336,7 @@ app.post('/api/products/delete', async (req, res) => {
   }
 
 });
+
 /* =======================
    ORDERS
 ======================= */
@@ -335,7 +357,9 @@ app.post('/api/orders/update', async (req, res) => {
   const sheet = await getSheet('Orders');
   const rows = await sheet.getRows();
 
-  const row = rows.find(r => r.id === req.body.id);
+ const row = rows.find(
+  r => String(r.id).trim() === id.trim()
+);
   if (!row) return res.status(404).json({ error: "not found" });
 
   row.status = req.body.status;
