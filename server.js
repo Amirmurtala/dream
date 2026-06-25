@@ -336,7 +336,18 @@ app.post('/api/products/delete', async (req, res) => {
   }
 
 });
+app.get('/debug-sheet', async (req,res)=>{
 
+  const doc = getDoc();
+
+  await doc.loadInfo();
+
+  res.json({
+    sheetId:SHEET_ID,
+    tabs:Object.keys(doc.sheetsByTitle)
+  });
+
+});
 /* =======================
    ORDERS
 ======================= */
