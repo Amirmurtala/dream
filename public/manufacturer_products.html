@@ -3,732 +3,173 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Manufacturer Dashboard</title>
-
+<title>Manufacturer Dashboard V2</title>
 <style>
-:root{
-  --bg:#0f172a;
-  --card:#1e293b;
-  --border:#334155;
-  --primary:#3b82f6;
-  --danger:#ef4444;
-  --success:#22c55e;
-  --text:#f8fafc;
-  --muted:#94a3b8;
-}
-
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:Inter,Arial,sans-serif;
-  min-height:100vh;
-}
-
-.container{
-  width:min(1200px,95%);
-  margin:auto;
-  padding:20px;
-}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:20px;
-}
-
-h1,h2,h3{
-  margin-bottom:15px;
-}
-
-input,
-textarea{
-  width:100%;
-  padding:12px;
-  border:none;
-  outline:none;
-  border-radius:10px;
-  background:#0f172a;
-  color:white;
-  border:1px solid var(--border);
-  margin-bottom:12px;
-}
-
-textarea{
-  min-height:100px;
-  resize:vertical;
-}
-
-button{
-  border:none;
-  cursor:pointer;
-  padding:12px 16px;
-  border-radius:10px;
-  color:white;
-  font-weight:600;
-}
-
-.btn-primary{
-  background:var(--primary);
-}
-
-.btn-danger{
-  background:var(--danger);
-}
-
-.btn-success{
-  background:var(--success);
-}
-
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:20px;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-  gap:15px;
-}
-
-.product{
-  background:#0f172a;
-  border:1px solid var(--border);
-  border-radius:12px;
-  overflow:hidden;
-}
-
-.product img{
-  width:100%;
-  height:180px;
-  object-fit:cover;
-}
-
-.product-body{
-  padding:12px;
-}
-
-.product-name{
-  font-weight:700;
-  margin-bottom:8px;
-}
-
-.product-price{
-  color:#38bdf8;
-  margin-bottom:12px;
-}
-
-.order{
-  background:#0f172a;
-  border:1px solid var(--border);
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:12px;
-}
-
-.badge{
-  display:inline-block;
-  padding:4px 10px;
-  border-radius:20px;
-  font-size:12px;
-  margin-top:6px;
-}
-
-.pending{
-  background:#f59e0b;
-  color:black;
-}
-
-.delivered{
-  background:#22c55e;
-  color:white;
-}
-
-.hidden{
-  display:none;
-}
-
-.login-box{
-  max-width:400px;
-  margin:100px auto;
-}
-
-.message{
-  margin-top:10px;
-  color:#f87171;
-}
-
-.success{
-  color:#22c55e;
-}
-
-@media(max-width:700px){
-  .header{
-    flex-direction:column;
-    gap:10px;
-  }
-}
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--primary:#2563eb;--danger:#dc2626;--success:#16a34a;--text:#f8fafc}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+.container{max-width:1200px;margin:auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px}
+input,textarea{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:white}
+button{padding:12px 16px;border:none;border-radius:8px;color:white;cursor:pointer}
+.primary{background:var(--primary)} .danger{background:var(--danger)} .success{background:var(--success)}
+.hidden{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:15px}
+.product{background:#0b1220;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.product img{width:100%;height:180px;object-fit:cover}
+.product-body{padding:12px}
+#spinner{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center;z-index:9999}
+.loader{width:60px;height:60px;border:6px solid #ddd;border-top:6px solid #2563eb;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
+<div id="spinner"><div class="loader"></div></div>
 
 <div id="loginView" class="container">
-
-  <div class="card login-box">
-
-    <h2>Manufacturer Login</h2>
-
-    <input
-      id="password"
-      type="password"
-      placeholder="Enter Password"
-    >
-
-    <button
-      class="btn-primary"
-      id="loginBtn"
-    >
-      Login
-    </button>
-
-    <div
-      id="loginMessage"
-      class="message"
-    ></div>
-
-  </div>
-
+<div class="card" style="max-width:400px;margin:80px auto">
+<h2>Manufacturer Login</h2>
+<input id="password" type="password" placeholder="Password">
+<button id="loginBtn" class="primary">Login</button>
+<p id="msg"></p>
+</div>
 </div>
 
-<!-- DASHBOARD -->
+<div id="dashboard" class="container hidden">
+<div class="card">
+<h1>Manufacturer Dashboard</h1>
+<button id="logoutBtn" class="danger">Logout</button>
+</div>
 
-<div
-  id="dashboard"
-  class="container hidden"
->
+<div class="card">
+<h2>Add Product</h2>
+<input id="pName" placeholder="Product Name">
+<input id="pPrice" type="number" placeholder="Price">
+<textarea id="pDesc" placeholder="Description"></textarea>
+<input id="pImg" type="file" accept="image/*">
+<button id="saveBtn" class="success">Save Product</button>
+</div>
 
-  <div class="header">
+<div class="card">
+<h2>Products</h2>
+<div id="productList" class="grid"></div>
+</div>
 
-    <h1>Manufacturer Dashboard</h1>
-
-    <button
-      class="btn-danger"
-      id="logoutBtn"
-    >
-      Logout
-    </button>
-
-  </div>
-
-  <!-- ADD PRODUCT -->
-
-  <div class="card">
-
-    <h2>Add Product</h2>
-
-    <input
-      id="pName"
-      placeholder="Product Name"
-    >
-
-    <input
-      id="pPrice"
-      type="number"
-      placeholder="Price"
-    >
-
-    <textarea
-      id="pDesc"
-      placeholder="Description"
-    ></textarea>
-
-    <input
-      id="pImg"
-      placeholder="Image URL"
-    >
-
-    <button
-      class="btn-success"
-      id="saveBtn"
-    >
-      Save Product
-    </button>
-
-  </div>
-
-  <!-- PRODUCTS -->
-
-  <div class="card">
-
-    <h2>Products</h2>
-
-    <div id="productList" class="grid"></div>
-
-  </div>
-
-  <!-- ORDERS -->
-
-  <div class="card">
-
-    <h2>Orders</h2>
-
-    <div id="orderList"></div>
-
-  </div>
-
+<div class="card">
+<h2>Orders</h2>
+<div id="orderList"></div>
+</div>
 </div>
 
 <script>
+const API="https://dream-yinl.onrender.com";
+const CLOUD_NAME="dreammode";
+const UPLOAD_PRESET="products_unsigned";
 
-const API =
-"https://dream-yinl.onrender.com";
-
-/* ------------------
-AUTH
-------------------- */
+const qs=id=>document.getElementById(id);
+const showSpinner=()=>qs("spinner").style.display="flex";
+const hideSpinner=()=>qs("spinner").style.display="none";
 
 async function login(){
-
-  const password =
-    document
-    .getElementById("password")
-    .value
-    .trim();
-
-  if(!password){
-    return;
-  }
-
-  const btn =
-    document.getElementById("loginBtn");
-
-  btn.disabled = true;
-  btn.textContent = "Checking...";
-
-  try{
-
-    const res =
-      await fetch(
-        API + "/api/admin/auth",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json"
-          },
-          body:JSON.stringify({
-            password
-          })
-        }
-      );
-
-    const data =
-      await res.json();
-
-    if(!data.ok){
-
-      document.getElementById(
-        "loginMessage"
-      ).textContent =
-      data.error || "Login failed";
-
-      btn.disabled = false;
-      btn.textContent = "Login";
-
-      return;
-    }
-
-    localStorage.setItem(
-      "manufacturer_auth",
-      "true"
-    );
-
-    showDashboard();
-
-  }catch(err){
-
-    console.error(err);
-
-    document.getElementById(
-      "loginMessage"
-    ).textContent =
-    "Server not reachable";
-
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Login";
+showSpinner();
+try{
+const res=await fetch(API+"/api/admin/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:qs("password").value.trim()})});
+const data=await res.json();
+if(!data.ok){qs("msg").textContent=data.error||"Login failed";return;}
+localStorage.setItem("manufacturer_auth","true");
+initDashboard();
+}catch(e){qs("msg").textContent="Server error";}
+finally{hideSpinner();}
 }
 
-function logout(){
+function logout(){localStorage.removeItem("manufacturer_auth");location.reload();}
 
-  localStorage.removeItem(
-    "manufacturer_auth"
-  );
-
-  location.reload();
-}
-
-function showDashboard(){
-
-  document
-    .getElementById("loginView")
-    .classList.add("hidden");
-
-  document
-    .getElementById("dashboard")
-    .classList.remove("hidden");
-
-  loadProducts();
-  loadOrders();
-}
-
-/* ------------------
-PRODUCTS
-------------------- */
-
-async function loadProducts(){
-
-  try{
-
-    const res =
-      await fetch(
-        API + "/api/products"
-      );
-
-    const products =
-      await res.json();
-
-    const container =
-      document.getElementById(
-        "productList"
-      );
-
-    if(!products.length){
-
-      container.innerHTML =
-      "<p>No products found</p>";
-
-      return;
-    }
-
-    container.innerHTML =
-      products.map(p => `
-
-      <div class="product">
-
-        <img
-          src="${
-            p.img ||
-            'https://via.placeholder.com/400'
-          }"
-        >
-
-        <div class="product-body">
-
-          <div class="product-name">
-            ${p.name}
-          </div>
-
-          <div class="product-price">
-            ₦${Number(
-              p.price || 0
-            ).toLocaleString()}
-          </div>
-
-          <button
-            class="btn-danger"
-            onclick="deleteProduct('${p.id}')"
-          >
-            Delete
-          </button>
-
-        </div>
-
-      </div>
-
-    `).join("");
-
-  }catch(err){
-
-    console.error(err);
-
-  }
+async function uploadImage(file){
+const fd=new FormData();
+fd.append("file",file);
+fd.append("upload_preset",UPLOAD_PRESET);
+const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:"POST",body:fd});
+const data=await res.json();
+return data.secure_url;
 }
 
 async function saveProduct(){
+const name=qs("pName").value.trim();
+const price=qs("pPrice").value.trim();
+const desc=qs("pDesc").value.trim();
+const file=qs("pImg").files[0];
+if(!name||!price||!file){alert("Name, price and image required");return;}
+showSpinner();
+try{
+const img=await uploadImage(file);
+const res=await fetch(API+"/api/products/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:Date.now().toString(),name,price,desc,img})});
+const data=await res.json();
+if(!data.ok){alert(data.error||"Save failed");return;}
+qs("pName").value="";qs("pPrice").value="";qs("pDesc").value="";qs("pImg").value="";
+loadProducts();
+}catch(e){alert("Save failed");}
+finally{hideSpinner();}
+}
 
-  const name =
-    document
-    .getElementById("pName")
-    .value.trim();
-
-  const price =
-    document
-    .getElementById("pPrice")
-    .value.trim();
-
-  const desc =
-    document
-    .getElementById("pDesc")
-    .value.trim();
-
-  const img =
-    document
-    .getElementById("pImg")
-    .value.trim();
-
-  if(!name || !price){
-
-    alert(
-      "Name and price required"
-    );
-
-    return;
-  }
-
-  try{
-
-    const res =
-      await fetch(
-        API + "/api/products/save",
-        {
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json"
-          },
-          body:JSON.stringify({
-            id:Date.now().toString(),
-            name,
-            price,
-            desc,
-            img
-          })
-        }
-      );
-
-    const data =
-      await res.json();
-
-    if(!data.ok){
-
-      alert(
-        data.error ||
-        "Failed"
-      );
-
-      return;
-    }
-
-    document.getElementById("pName").value="";
-    document.getElementById("pPrice").value="";
-    document.getElementById("pDesc").value="";
-    document.getElementById("pImg").value="";
-
-    loadProducts();
-
-  }catch(err){
-
-    console.error(err);
-
-  }
+async function loadProducts(){
+showSpinner();
+try{
+const res=await fetch(API+"/api/products");
+const products=await res.json();
+qs("productList").innerHTML=(products||[]).map(p=>`
+<div class="product">
+<img src="${p.img||'https://via.placeholder.com/400'}">
+<div class="product-body">
+<h3>${p.name}</h3>
+<p>₦${Number(p.price||0).toLocaleString()}</p>
+<button class="danger" onclick="deleteProduct('${p.id}')">Delete</button>
+</div></div>`).join("") || "<p>No products</p>";
+}finally{hideSpinner();}
 }
 
 async function deleteProduct(id){
-
-  if(
-    !confirm(
-      "Delete this product?"
-    )
-  ){
-    return;
-  }
-
-  try{
-
-    await fetch(
-      API + "/api/products/delete",
-      {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({id})
-      }
-    );
-
-    loadProducts();
-
-  }catch(err){
-
-    console.error(err);
-
-  }
+if(!confirm("Delete product?")) return;
+showSpinner();
+try{
+await fetch(API+"/api/products/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+loadProducts();
+}finally{hideSpinner();}
 }
 
-/* ------------------
-ORDERS
-------------------- */
-
 async function loadOrders(){
-
-  try{
-
-    const res =
-      await fetch(
-        API + "/api/orders"
-      );
-
-    const orders =
-      await res.json();
-
-    const container =
-      document.getElementById(
-        "orderList"
-      );
-
-    if(!orders.length){
-
-      container.innerHTML =
-      "<p>No orders</p>";
-
-      return;
-    }
-
-    container.innerHTML =
-      orders.map(o => `
-
-      <div class="order">
-
-        <strong>
-          ${o.customer}
-        </strong>
-
-        <br>
-
-        ${o.phone}
-
-        <br><br>
-
-        ₦${Number(
-          o.total || 0
-        ).toLocaleString()}
-
-        <br>
-
-        <span class="badge ${
-          o.status === "delivered"
-          ? "delivered"
-          : "pending"
-        }">
-
-          ${o.status}
-
-        </span>
-
-        <br><br>
-
-        ${
-          o.status !== "delivered"
-          ?
-          `
-          <button
-          class="btn-success"
-          onclick="markDelivered('${o.id}')">
-          Mark Delivered
-          </button>
-          `
-          :
-          ""
-        }
-
-      </div>
-
-    `).join("");
-
-  }catch(err){
-
-    console.error(err);
-
-  }
+showSpinner();
+try{
+const res=await fetch(API+"/api/orders");
+const orders=await res.json();
+qs("orderList").innerHTML=(orders||[]).map(o=>`
+<div class="card">
+<b>${o.customer}</b><br>${o.phone}<br>₦${Number(o.total||0).toLocaleString()}<br>${o.status}<br><br>
+${o.status!=="delivered"?`<button class="success" onclick="markDelivered('${o.id}')">Mark Delivered</button>`:""}
+</div>`).join("") || "<p>No orders</p>";
+}finally{hideSpinner();}
 }
 
 async function markDelivered(id){
-
-  try{
-
-    await fetch(
-      API + "/api/orders/update",
-      {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          id,
-          status:"delivered"
-        })
-      }
-    );
-
-    loadOrders();
-
-  }catch(err){
-
-    console.error(err);
-
-  }
+showSpinner();
+try{
+await fetch(API+"/api/orders/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status:"delivered"})});
+loadOrders();
+}finally{hideSpinner();}
 }
 
-/* ------------------
-EVENTS
-------------------- */
-
-document
-.getElementById("loginBtn")
-.addEventListener(
-  "click",
-  login
-);
-
-document
-.getElementById("logoutBtn")
-.addEventListener(
-  "click",
-  logout
-);
-
-document
-.getElementById("saveBtn")
-.addEventListener(
-  "click",
-  saveProduct
-);
-
-/* ------------------
-INIT
-------------------- */
-
-if(
-  localStorage.getItem(
-    "manufacturer_auth"
-  ) === "true"
-){
-  showDashboard();
+function initDashboard(){
+qs("loginView").classList.add("hidden");
+qs("dashboard").classList.remove("hidden");
+loadProducts();
+loadOrders();
 }
 
+qs("loginBtn").addEventListener("click",login);
+qs("logoutBtn").addEventListener("click",logout);
+qs("saveBtn").addEventListener("click",saveProduct);
+
+if(localStorage.getItem("manufacturer_auth")==="true"){initDashboard();}
 </script>
-
 </body>
 </html>
