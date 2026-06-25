@@ -235,94 +235,86 @@ app.post('/api/user/session', async (req, res) => {
 /* =======================
    PRODUCTS
 ======================= */
-app.get('/api/products', async (req, res) => {
-  try {
-    const sheet = await getSheet('Products');
-    const rows = await sheet.getRows();
-
-    const products = rows.map(r => ({
-      id: r.id || r._rawData?.[0],
-      name: r.name || "Unnamed product",
-      price: Number(r.price || 0),
-      desc: r.desc || "",
-      img: r.img || ""
-    })).filter(p => p.id); // remove broken rows
-
-    res.json(products);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 app.post('/api/products/save', async (req, res) => {
+
   try {
-    const sheet = await getSheet('Products');
 
-    const product = {
-      id: String(req.body.id || Date.now()),
-      name: req.body.name || "Unnamed product",
-      price: Number(req.body.price || 0),
-      desc: req.body.desc || "",
-      img: req.body.img || ""
-    };
+    const { name, price, desc, img } = req.body;
 
-    const rows = await sheet.getRows();
-
-    const existing = rows.find(
-      r => String(r.id) === product.id
-    );
-
-    if (existing) {
-      existing.name = product.name;
-      existing.price = product.price;
-      existing.desc = product.desc;
-      existing.img = product.img;
-
-      await existing.save();
-
-      return res.json({
-        ok: true,
-        action: 'updated'
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({
+        ok:false,
+        error:"Product name required"
       });
     }
 
-    await sheet.addRow(product);
+    if (!price) {
+      return res.status(400).json({
+        ok:false,
+        error:"Product price required"
+      });
+    }
+
+    const sheet = await getSheet('Products');
+
+    await sheet.addRow({
+      id: Date.now().toString(),
+      name: String(name).trim(),
+      price: Number(price),
+      desc: desc || "",
+      img: img || ""
+    });
 
     res.json({
-      ok: true,
-      action: 'created'
+      ok:true
     });
 
-  } catch (err) {
+  } catch(err) {
+
     res.status(500).json({
-      ok: false,
-      error: err.message
+      ok:false,
+      error:err.message
     });
-  }
-});
 
+  }
+
+});
 app.post('/api/products/delete', async (req, res) => {
+
   try {
+
     const sheet = await getSheet('Products');
     const rows = await sheet.getRows();
 
     const id = String(req.body.id);
 
-    const row = rows.find(r => String(r.id) === id);
+    const row = rows.find(
+      r => String(r.id) === id
+    );
 
     if (!row) {
-      return res.status(404).json({ error: "not found" });
+      return res.status(404).json({
+        ok:false,
+        error:"Product not found"
+      });
     }
 
     await row.delete();
-    res.json({ ok: true });
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.json({
+      ok:true
+    });
+
+  } catch(err) {
+
+    res.status(500).json({
+      ok:false,
+      error:err.message
+    });
+
   }
-});
 
+});
 /* =======================
    ORDERS
 ======================= */
