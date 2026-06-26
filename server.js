@@ -107,6 +107,38 @@ async function getSheet(title) {
   return sheet;
 }
 
+function verifyAdmin(req, res, next) {
+
+    const auth = req.headers.authorization;
+
+    if (!auth) {
+        return res.status(401).json({
+            ok: false,
+            error: "No token"
+        });
+    }
+
+    const token = auth.replace("Bearer ", "");
+
+    try {
+
+        jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+        next();
+
+    } catch {
+
+        res.status(401).json({
+            ok: false,
+            error: "Invalid token"
+        });
+
+    }
+
+}
 /* =======================
    ROUTES - HTML FIX
 ======================= */
@@ -134,35 +166,46 @@ app.get('/api/admin/auth', (req,res)=>{
   });
 });
 
-app.post('/api/admin/auth', (req, res) => {
+app.post("/api/admin/auth", (req, res) => {
 
-  const { password } = req.body;
+    const { password } = req.body;
 
-  if (!password) {
-    return res.status(400).json({
-      ok: false,
-      error: 'Password required'
+    if (!password) {
+        return res.status(400).json({
+            ok: false,
+            error: "Password required"
+        });
+    }
+
+    if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({
+            ok: false,
+            error: "Invalid password"
+        });
+    }
+
+    const token = jwt.sign(
+        {
+            role: "admin"
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: "24h"
+        }
+    );
+
+    res.json({
+        ok: true,
+        token
     });
-  }
-
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({
-      ok: false,
-      error: 'Wrong password'
-    });
-  }
-
-  res.json({
-    ok: true,
-    message: 'Login successful'
-  });
 
 });
-app.get('/api/admin/check', (req,res)=>{
 
-  res.json({
-    ok:true
-  });
+app.get("/api/admin/check", verifyAdmin, (req,res)=>{
+
+    res.json({
+        ok:true
+    });
 
 });
 
@@ -240,22 +283,36 @@ app.get('/api/products', async (req, res) => {
     const sheet = await getSheet('Products');
     const rows = await sheet.getRows();
 
-    const products = rows.map(r => ({
-      id: r.id || r._rawData?.[0],
-      name: r.name || "Unnamed product",
-      price: Number(r.price || 0),
-      desc: r.desc || "",
-      img: r.img || ""
-    })).filter(p => p.id); // remove broken rows
+const {
 
-    res.json(products);
+    name,
+    price,
+    desc,
+    img
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+} = req.body;
 
-app.post('/api/products/save', async (req, res) => {
+if(!name){
+
+    return res.status(400).json({
+        ok:false,
+        error:"Product name required"
+    });
+
+}
+
+if(!price){
+
+    return res.status(400).json({
+        ok:false,
+        error:"Product price required"
+    });
+
+}
+app.post(
+    "/api/products/save",
+    verifyAdmin,
+    async (req,res)=>{
 
   try {
 
@@ -300,8 +357,10 @@ app.post('/api/products/save', async (req, res) => {
 
 });
 
-app.post('/api/products/delete', async (req, res) => {
-
+app.post(
+    "/api/products/delete",
+    verifyAdmin,
+    async(req,res)=>{
   try {
 
     const sheet = await getSheet('Products');
