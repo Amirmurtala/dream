@@ -1,175 +1,400 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manufacturer Dashboard V2</title>
-<style>
-:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--primary:#2563eb;--danger:#dc2626;--success:#16a34a;--text:#f8fafc}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
-.container{max-width:1200px;margin:auto;padding:20px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px}
-input,textarea{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:white}
-button{padding:12px 16px;border:none;border-radius:8px;color:white;cursor:pointer}
-.primary{background:var(--primary)} .danger{background:var(--danger)} .success{background:var(--success)}
-.hidden{display:none}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:15px}
-.product{background:#0b1220;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.product img{width:100%;height:180px;object-fit:cover}
-.product-body{padding:12px}
-#spinner{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center;z-index:9999}
-.loader{width:60px;height:60px;border:6px solid #ddd;border-top:6px solid #2563eb;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>DreamMode Manufacturer Dashboard</title>
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+<link
+rel="stylesheet"
+href="css/admin.css">
+
 </head>
+
 <body>
 
-<div id="spinner"><div class="loader"></div></div>
+<!-- ===========================
+LOGIN MODAL
+=========================== -->
 
-<div id="loginView" class="container">
-<div class="card" style="max-width:400px;margin:80px auto">
-<h2>Manufacturer Login</h2>
-<input id="password" type="password" placeholder="Password">
-<button id="loginBtn" class="primary">Login</button>
-<p id="msg"></p>
+<div
+id="loginModal"
+class="login-modal">
+
+<div
+class="login-card">
+
+<h1>DreamMode</h1>
+
+<p>
+Manufacturer Dashboard
+</p>
+
+<input
+type="password"
+id="adminPassword"
+placeholder="Enter Admin Password">
+
+<button
+id="loginBtn">
+
+Login
+
+</button>
+
+<p
+id="loginError"
+class="error">
+
+Invalid Password
+
+</p>
+
 </div>
+
 </div>
 
-<div id="dashboard" class="container hidden">
-<div class="card">
-<h1>Manufacturer Dashboard</h1>
-<button id="logoutBtn" class="danger">Logout</button>
+<!-- ===========================
+LOADING
+=========================== -->
+
+<div
+id="loadingOverlay"
+class="loading-overlay">
+
+<div class="spinner"></div>
+
+<p>Loading...</p>
+
 </div>
 
-<div class="card">
-<h2>Add Product</h2>
-<input id="pName" placeholder="Product Name">
-<input id="pPrice" type="number" placeholder="Price">
-<textarea id="pDesc" placeholder="Description"></textarea>
-<input id="pImg" type="file" accept="image/*">
-<button id="saveBtn" class="success">Save Product</button>
+<!-- ===========================
+TOAST
+=========================== -->
+
+<div
+id="toast"
+class="toast">
+
 </div>
 
-<div class="card">
-<h2>Products</h2>
-<div id="productList" class="grid"></div>
+<!-- ===========================
+APP
+=========================== -->
+
+<div
+id="app"
+class="app hidden">
+
+<!-- Sidebar -->
+
+<aside
+class="sidebar">
+
+<div class="logo">
+
+<h2>DreamMode</h2>
+
+<p>Manufacturer</p>
+
 </div>
 
-<div class="card">
-<h2>Orders</h2>
-<div id="orderList"></div>
+<nav>
+
+<button
+class="nav-btn active"
+data-page="dashboard">
+
+🏠 Dashboard
+
+</button>
+
+<button
+class="nav-btn"
+data-page="products">
+
+📦 Products
+
+</button>
+
+<button
+class="nav-btn"
+data-page="orders">
+
+🛒 Orders
+
+</button>
+
+</nav>
+
+<div class="sidebar-bottom">
+
+<button
+id="logoutBtn"
+class="logout-btn">
+
+Logout
+
+</button>
+
 </div>
+
+</aside>
+
+<!-- Main -->
+
+<main
+class="main-content">
+
+<header
+class="topbar">
+
+<div>
+
+<h1>
+
+Manufacturer Dashboard
+
+</h1>
+
+<p>
+
+Manage products and orders
+
+</p>
+
 </div>
 
-<script>
-const API="https://dream-yinl.onrender.com";
-const CLOUD_NAME="dreammode";
-const UPLOAD_PRESET="products_unsigned";
+<div
+class="top-actions">
 
-const qs=id=>document.getElementById(id);
-const showSpinner=()=>qs("spinner").style.display="flex";
-const hideSpinner=()=>qs("spinner").style.display="none";
+<button
+id="refreshBtn">
 
-async function login(){
-showSpinner();
-try{
-const res=await fetch(API+"/api/admin/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:qs("password").value.trim()})});
-const data=await res.json();
-if(!data.ok){qs("msg").textContent=data.error||"Login failed";return;}
-localStorage.setItem("manufacturer_auth","true");
-initDashboard();
-}catch(e){qs("msg").textContent="Server error";}
-finally{hideSpinner();}
-}
+Refresh
 
-function logout(){localStorage.removeItem("manufacturer_auth");location.reload();}
+</button>
 
-async function uploadImage(file){
-const fd=new FormData();
-fd.append("file",file);
-fd.append("upload_preset",UPLOAD_PRESET);
-const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:"POST",body:fd});
-const data=await res.json();
-return data.secure_url;
-}
+</div>
 
-async function saveProduct(){
-const name=qs("pName").value.trim();
-const price=qs("pPrice").value.trim();
-const desc=qs("pDesc").value.trim();
-const file=qs("pImg").files[0];
-if(!name||!price||!file){alert("Name, price and image required");return;}
-showSpinner();
-try{
-const img=await uploadImage(file);
-const res=await fetch(API+"/api/products/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:Date.now().toString(),name,price,desc,img})});
-const data=await res.json();
-if(!data.ok){alert(data.error||"Save failed");return;}
-qs("pName").value="";qs("pPrice").value="";qs("pDesc").value="";qs("pImg").value="";
-loadProducts();
-}catch(e){alert("Save failed");}
-finally{hideSpinner();}
-}
+</header>
+<!-- =====================================
+DASHBOARD
+====================================== -->
 
-async function loadProducts(){
-showSpinner();
-try{
-const res=await fetch(API+"/api/products");
-const products=await res.json();
-qs("productList").innerHTML=(products||[]).map(p=>`
-<div class="product">
-<img src="${p.img||'https://via.placeholder.com/400'}">
-<div class="product-body">
-<h3>${p.name}</h3>
-<p>₦${Number(p.price||0).toLocaleString()}</p>
-<button class="danger" onclick="deleteProduct('${p.id}')">Delete</button>
-</div></div>`).join("") || "<p>No products</p>";
-}finally{hideSpinner();}
-}
+<section
+id="dashboardPage"
+class="page active">
 
-async function deleteProduct(id){
-if(!confirm("Delete product?")) return;
-showSpinner();
-try{
-await fetch(API+"/api/products/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
-loadProducts();
-}finally{hideSpinner();}
-}
+<div class="stats-grid">
 
-async function loadOrders(){
-showSpinner();
-try{
-const res=await fetch(API+"/api/orders");
-const orders=await res.json();
-qs("orderList").innerHTML=(orders||[]).map(o=>`
-<div class="card">
-<b>${o.customer}</b><br>${o.phone}<br>₦${Number(o.total||0).toLocaleString()}<br>${o.status}<br><br>
-${o.status!=="delivered"?`<button class="success" onclick="markDelivered('${o.id}')">Mark Delivered</button>`:""}
-</div>`).join("") || "<p>No orders</p>";
-}finally{hideSpinner();}
-}
+<div class="stat-card">
 
-async function markDelivered(id){
-showSpinner();
-try{
-await fetch(API+"/api/orders/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status:"delivered"})});
-loadOrders();
-}finally{hideSpinner();}
-}
+<h3>Total Products</h3>
 
-function initDashboard(){
-qs("loginView").classList.add("hidden");
-qs("dashboard").classList.remove("hidden");
-loadProducts();
-loadOrders();
-}
+<h1 id="statProducts">
+0
+</h1>
 
-qs("loginBtn").addEventListener("click",login);
-qs("logoutBtn").addEventListener("click",logout);
-qs("saveBtn").addEventListener("click",saveProduct);
+</div>
 
-if(localStorage.getItem("manufacturer_auth")==="true"){initDashboard();}
-</script>
+<div class="stat-card">
+
+<h3>Total Orders</h3>
+
+<h1 id="statOrders">
+0
+</h1>
+
+</div>
+
+<div class="stat-card">
+
+<h3>Revenue</h3>
+
+<h1 id="statRevenue">
+₦0
+</h1>
+
+</div>
+
+<div class="stat-card">
+
+<h3>Delivered</h3>
+
+<h1 id="statDelivered">
+0
+</h1>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- =====================================
+PRODUCTS
+====================================== -->
+
+<section
+id="productsPage"
+class="page">
+
+<div class="page-header">
+
+<h2>
+
+Products
+
+</h2>
+
+</div>
+
+<div class="product-form">
+
+<h3>
+
+Add / Edit Product
+
+</h3>
+
+<input
+id="productName"
+type="text"
+placeholder="Product Name">
+
+<input
+id="productPrice"
+type="number"
+placeholder="Price">
+
+<textarea
+id="productDesc"
+placeholder="Description"></textarea>
+
+<input
+id="productImage"
+type="file"
+accept="image/*">
+
+<input
+id="editingId"
+type="hidden">
+
+<button
+id="saveProductBtn">
+
+Save Product
+
+</button>
+
+</div>
+
+<hr>
+
+<h3>
+
+Product List
+
+</h3>
+
+<div
+id="productsGrid"
+class="products-grid">
+
+</div>
+
+</section>
+
+<!-- =====================================
+ORDERS
+====================================== -->
+
+<section
+id="ordersPage"
+class="page">
+
+<div class="page-header">
+
+<h2>
+
+Orders
+
+</h2>
+
+</div>
+
+<div
+class="table-wrapper">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Customer</th>
+
+<th>Phone</th>
+
+<th>Total</th>
+
+<th>Status</th>
+
+<th>Action</th>
+
+</tr>
+
+</thead>
+
+<tbody
+id="ordersTable">
+
+</tbody>
+
+</table>
+
+</div>
+
+</section><!-- =====================================
+FOOTER
+====================================== -->
+
+<footer class="footer">
+
+<p>
+
+DreamMode Manufacturer Dashboard © 2026
+
+</p>
+
+</footer>
+
+</main>
+
+</div>
+
+<script src="js/admin.js"></script>
+
 </body>
+
 </html>
