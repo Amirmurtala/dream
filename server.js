@@ -1,516 +1,1056 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const { GoogleSpreadsheet } = require('google-spreadsheet');
-const { JWT } = require('google-auth-library');
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+
+const { GoogleSpreadsheet } = require("google-spreadsheet");
+const { JWT } = require("google-auth-library");
 
 const app = express();
 
-/* =======================
-   FIX CORS (IMPORTANT)
-======================= */
+/* ======================================
+   CONFIG
+====================================== */
+
+const PORT = process.env.PORT || 10000;
+
+const ADMIN_PASSWORD =
+    process.env.ADMIN_PASSWORD || "admin123";
+
+const SHEET_ID =
+    process.env.GOOGLE_SHEET_ID;
+
+if (!SHEET_ID) {
+    throw new Error("GOOGLE_SHEET_ID is missing.");
+}
+
+if (!process.env.GOOGLE_CREDENTIALS) {
+    throw new Error("GOOGLE_CREDENTIALS is missing.");
+}
+
+const CREDS =
+    JSON.parse(process.env.GOOGLE_CREDENTIALS);
+
+/* ======================================
+   MIDDLEWARE
+====================================== */
+
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type"]
+    origin: "*",
+    methods: [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+    ],
+    allowedHeaders: [
+        "Content-Type",
+        "x-admin-password"
+    ]
 }));
 
-app.use(express.json({ limit: '10mb' }));
-const ADMIN_PASSWORD =
-  process.env.ADMIN_PASSWORD || "admin123";
-/* =======================
-   SERVE FRONTEND FILES
-======================= */
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({
+    limit: "10mb"
+}));
 
-/* =======================
-   ENV
-======================= */
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const CREDS = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+app.use(express.urlencoded({
+    extended: true
+}));
 
-/* =======================
-   GOOGLE SHEETS AUTH
-======================= */
-function getDoc() {
-  const auth = new JWT({
-    email: CREDS.client_email,
-    key: CREDS.private_key.replace(/\\n/g, '\n'),
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
+app.use(express.static(
+    path.join(__dirname, "public")
+));
 
-  return new GoogleSpreadsheet(SHEET_ID, auth);
-}
+/* ======================================
+   GOOGLE SHEETS
+====================================== */
 
-/* =======================
-   GET SHEET
-======================= */
-async function getSheet(title) {
+function getDocument() {
 
-  const doc = getDoc();
+    const auth = new JWT({
 
-  await doc.loadInfo();
+        email: CREDS.client_email,
 
-  const schemas = {
-    Users: [
-      'phone',
-      'name',
-      'email',
-      'avatar',
-      'created_at'
-    ],
-    Products: [
-      'id',
-      'name',
-      'price',
-      'desc',
-      'img'
-    ],
-    Orders: [
-      'id',
-      'time',
-      'customer',
-      'phone',
-      'items',
-      'total',
-      'status'
-    ]
-  };
+        key: CREDS.private_key.replace(
+            /\\n/g,
+            "\n"
+        ),
 
-  let sheet =
-    doc.sheetsByTitle[title];
+        scopes: [
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
 
-  if (!sheet) {
+    });
 
-    sheet =
-      await doc.addSheet({
-        title,
-        headerValues:
-          schemas[title]
-      });
-
-    return sheet;
-  }
-
-  try {
-
-    await sheet.loadHeaderRow();
-
-  } catch {
-
-    await sheet.setHeaderRow(
-      schemas[title]
+    return new GoogleSpreadsheet(
+        SHEET_ID,
+        auth
     );
 
-  }
-
-  return sheet;
 }
 
-/* =======================
-   ROUTES - HTML FIX
-======================= */
+/* ======================================
+   SHEET SCHEMAS
+====================================== */
 
-// default route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+const SCHEMAS = {
+
+    Users: [
+        "phone",
+        "name",
+        "email",
+        "avatar",
+        "created_at"
+    ],
+
+    Products: [
+        "id",
+        "name",
+        "price",
+        "desc",
+        "img"
+    ],
+
+    Orders: [
+        "id",
+        "time",
+        "customer",
+        "phone",
+        "items",
+        "total",
+        "status"
+    ]
+
+};
+
+/* ======================================
+   GET SHEET
+====================================== */
+
+async function getSheet(title) {
+
+    const doc = getDocument();
+
+    await doc.loadInfo();
+
+    let sheet =
+        doc.sheetsByTitle[title];
+
+    if (!sheet) {
+
+        sheet =
+            await doc.addSheet({
+
+                title,
+
+                headerValues:
+                    SCHEMAS[title]
+
+            });
+
+        return sheet;
+
+    }
+
+    try {
+
+        await sheet.loadHeaderRow();
+
+    }
+
+    catch {
+
+        await sheet.setHeaderRow(
+            SCHEMAS[title]
+        );
+
+    }
+
+    return sheet;
+
+}
+
+/* ======================================
+   HELPERS
+====================================== */
+
+function clean(value) {
+
+    return String(value ?? "").trim();
+
+}
+
+function number(value) {
+
+    const n = Number(value);
+
+    return Number.isFinite(n)
+        ? n
+        : 0;
+
+}
+
+/* ======================================
+   STATIC ROUTES
+====================================== */
+
+app.get("/", (req, res) => {
+
+    res.sendFile(
+        path.join(
+            __dirname,
+            "public",
+            "login.html"
+        )
+    );
+
 });
 
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+app.get("/login", (req, res) => {
+
+    res.sendFile(
+        path.join(
+            __dirname,
+            "public",
+            "login.html"
+        )
+    );
+
 });
 
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'manufacturer_products.html'));
+app.get("/admin", (req, res) => {
+
+    res.sendFile(
+        path.join(
+            __dirname,
+            "public",
+            "manufacturer_products.html"
+        )
+    );
+
 });
 
-app.get('/shop', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'user_products.html'));
+app.get("/shop", (req, res) => {
+
+    res.sendFile(
+        path.join(
+            __dirname,
+            "public",
+            "user_products.html"
+        )
+    );
+
 });
 
-app.get('/api/admin/auth', (req,res)=>{
-  res.json({
-    status:'working'
-  });
+app.get("/debug-sheet", async (req, res) => {
+
+    try {
+
+        const doc = getDocument();
+
+        await doc.loadInfo();
+
+        res.json({
+
+            ok: true,
+
+            sheetId: SHEET_ID,
+
+            tabs: Object.keys(doc.sheetsByTitle)
+
+        });
+
+    }
+
+    catch (err) {
+
+        res.status(500).json({
+
+            ok: false,
+
+            error: err.message
+
+        });
+
+    }
+
 });
 
-/* =======================
-   ADMIN AUTH
-======================= */
+/* ======================================
+   ADMIN AUTHENTICATION
+====================================== */
 
-const jwt = require("jsonwebtoken");
+/*
+Login
 
-const ADMIN_PASSWORD =
-  process.env.ADMIN_PASSWORD || "admin123";
+Body:
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "dreammode-secret";
-
-/* Login */
+{
+    "password":"admin123"
+}
+*/
 
 app.post("/api/admin/auth", (req, res) => {
 
-  try {
+    try {
 
-    const { password } = req.body;
+        const password =
+            clean(req.body.password);
 
-    if (!password) {
-      return res.status(400).json({
-        ok: false,
-        error: "Password required"
-      });
+        if (!password) {
+
+            return res.status(400).json({
+
+                ok: false,
+
+                error: "Password is required"
+
+            });
+
+        }
+
+        if (password !== ADMIN_PASSWORD) {
+
+            return res.status(401).json({
+
+                ok: false,
+
+                error: "Incorrect password"
+
+            });
+
+        }
+
+        res.json({
+
+            ok: true,
+
+            message: "Login successful"
+
+        });
+
     }
 
-    if (password !== ADMIN_PASSWORD) {
-      return res.status(401).json({
-        ok: false,
-        error: "Invalid password"
-      });
+    catch (err) {
+
+        res.status(500).json({
+
+            ok: false,
+
+            error: err.message
+
+        });
+
     }
-
-    const token = jwt.sign(
-      {
-        role: "admin"
-      },
-      JWT_SECRET,
-      {
-        expiresIn: "24h"
-      }
-    );
-
-    res.json({
-      ok: true,
-      token
-    });
-
-  } catch (err) {
-
-    res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-
-  }
 
 });
 
-/* Verify Token */
+/* ======================================
+   ADMIN MIDDLEWARE
+====================================== */
 
 function verifyAdmin(req, res, next) {
 
-  const auth =
-    req.headers.authorization;
+    const password = clean(
 
-  if (!auth) {
-    return res.status(401).json({
-      ok: false,
-      error: "Unauthorized"
-    });
-  }
+        req.headers["x-admin-password"] ||
 
-  const token =
-    auth.replace("Bearer ", "");
+        req.body.password
 
-  try {
-
-    jwt.verify(
-      token,
-      JWT_SECRET
     );
+
+    if (!password) {
+
+        return res.status(401).json({
+
+            ok: false,
+
+            error: "Admin password required"
+
+        });
+
+    }
+
+    if (password !== ADMIN_PASSWORD) {
+
+        return res.status(401).json({
+
+            ok: false,
+
+            error: "Unauthorized"
+
+        });
+
+    }
 
     next();
 
-  } catch {
-
-    res.status(401).json({
-      ok: false,
-      error: "Token expired"
-    });
-
-  }
-
 }
 
-/* Check Login */
+/* ======================================
+   ADMIN STATUS
+====================================== */
 
-app.get(
-  "/api/admin/check",
-  verifyAdmin,
-  (req, res) => {
-
-    res.json({
-      ok: true
-    });
-
-  }
-);
-
-app.get("/api/admin/check", verifyAdmin, (req,res)=>{
+app.get("/api/admin/check", (req, res) => {
 
     res.json({
-        ok:true
+
+        ok: true,
+
+        authenticated: true
+
     });
 
 });
-
 /* =======================
    USER LOGIN
 ======================= */
-app.post('/api/user/login', async (req, res) => {
-  try {
-    const sheet = await getSheet('Users');
-    const rows = await sheet.getRows();
+/* ======================================
+   USER API
+====================================== */
 
-    const { name, phone, email, avatar } = req.body;
+/*
+Register/Login User
 
-    let user = rows.find(r => r.phone === phone);
+If the phone already exists,
+return the existing user.
 
-    if (user) {
-      return res.json({ exists: true, user });
+Otherwise create a new user.
+*/
+
+app.post("/api/user/login", async (req, res) => {
+
+    try {
+
+        const phone = clean(req.body.phone);
+        const name = clean(req.body.name);
+        const email = clean(req.body.email);
+        const avatar = clean(req.body.avatar);
+
+        if (!phone) {
+
+            return res.status(400).json({
+
+                ok: false,
+                error: "Phone number is required"
+
+            });
+
+        }
+
+        const sheet =
+            await getSheet("Users");
+
+        const rows =
+            await sheet.getRows();
+
+        const existing =
+            rows.find(
+
+                row =>
+                    clean(row.phone) === phone
+
+            );
+
+        if (existing) {
+
+            return res.json({
+
+                ok: true,
+
+                exists: true,
+
+                user: {
+
+                    phone: clean(existing.phone),
+                    name: clean(existing.name),
+                    email: clean(existing.email),
+                    avatar: clean(existing.avatar),
+                    created_at: clean(existing.created_at)
+
+                }
+
+            });
+
+        }
+
+        const createdAt =
+            new Date().toISOString();
+
+        await sheet.addRow({
+
+            phone,
+
+            name,
+
+            email,
+
+            avatar,
+
+            created_at: createdAt
+
+        });
+
+        res.json({
+
+            ok: true,
+
+            exists: false,
+
+            user: {
+
+                phone,
+
+                name,
+
+                email,
+
+                avatar,
+
+                created_at: createdAt
+
+            }
+
+        });
+
     }
 
-    await sheet.addRow({
-      phone,
-      name,
-      email,
-      avatar,
-      created_at: new Date().toISOString()
-    });
+    catch (err) {
 
-    res.json({ exists: false, user: { name, phone, email, avatar } });
+        console.error(err);
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+        res.status(500).json({
 
-app.post('/api/user/session', async (req, res) => {
+            ok: false,
 
-  try {
+            error: err.message
 
-    const sheet =
-      await getSheet('Users');
+        });
 
-    const rows =
-      await sheet.getRows();
-
-    const user = rows.find(
-      r => String(r.phone) ===
-      String(req.body.phone)
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        error:'Not found'
-      });
     }
 
-    res.json({
-      ok:true
-    });
+});
 
-  } catch(err) {
+/* ======================================
+   RESTORE USER SESSION
+====================================== */
 
-    res.status(500).json({
-      error: err.message
-    });
+app.post("/api/user/session", async (req, res) => {
 
-  }
+    try {
+
+        const phone =
+            clean(req.body.phone);
+
+        if (!phone) {
+
+            return res.status(400).json({
+
+                ok: false,
+
+                error: "Phone number required"
+
+            });
+
+        }
+
+        const sheet =
+            await getSheet("Users");
+
+        const rows =
+            await sheet.getRows();
+
+        const user =
+            rows.find(
+
+                row =>
+                    clean(row.phone) === phone
+
+            );
+
+        if (!user) {
+
+            return res.status(404).json({
+
+                ok: false,
+
+                error: "User not found"
+
+            });
+
+        }
+
+        res.json({
+
+            ok: true,
+
+            user: {
+
+                phone: clean(user.phone),
+                name: clean(user.name),
+                email: clean(user.email),
+                avatar: clean(user.avatar),
+                created_at: clean(user.created_at)
+
+            }
+
+        });
+
+    }
+
+    catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+
+            ok: false,
+
+            error: err.message
+
+        });
+
+    }
 
 });
 
-/* =======================
+/* ======================================
+   GET ALL USERS (ADMIN)
+====================================== */
+
+app.get(
+
+    "/api/users",
+
+    verifyAdmin,
+
+    async (req, res) => {
+
+        try {
+
+            const sheet =
+                await getSheet("Users");
+
+            const rows =
+                await sheet.getRows();
+
+            const users =
+                rows.map(row => ({
+
+                    phone:
+                        clean(row.phone),
+
+                    name:
+                        clean(row.name),
+
+                    email:
+                        clean(row.email),
+
+                    avatar:
+                        clean(row.avatar),
+
+                    created_at:
+                        clean(row.created_at)
+
+                }));
+
+            res.json({
+
+                ok: true,
+
+                users
+
+            });
+
+        }
+
+        catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+
+                ok: false,
+
+                error: err.message
+
+            });
+
+        }
+
+    }
+
+);
+/* ======================================
    PRODUCTS
-======================= */
-/* =======================
-   PRODUCTS
-======================= */
+====================================== */
+
+/*
+GET ALL PRODUCTS
+*/
 
 app.get("/api/products", async (req, res) => {
 
-  try {
-
-    const sheet = await getSheet("Products");
-    const rows = await sheet.getRows();
-
-    const products = rows
-      .map(r => ({
-        id: String(r.id || "").trim(),
-        name: String(r.name || "").trim(),
-        price: Number(r.price || 0),
-        desc: String(r.desc || "").trim(),
-        img: String(r.img || "").trim()
-      }))
-      .filter(p => p.id !== "");
-
-    res.json(products);
-
-  } catch (err) {
-
-    res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-
-  }
-
-});
-
-app.post(
-  "/api/products/save",
-  verifyAdmin,
-  async (req, res) => {
-console.log("BODY:", req.body);
     try {
 
-      const {
+        const sheet =
+            await getSheet("Products");
 
-        id,
-        name,
-        price,
-        desc,
-        img
+        const rows =
+            await sheet.getRows();
 
-      } = req.body;
+        const products = rows
 
-      if (!name || !price) {
+            .map(row => ({
 
-        return res.status(400).json({
-          ok: false,
-          error: "Name and price are required"
+                id: clean(row.id),
+
+                name: clean(row.name),
+
+                price: number(row.price),
+
+                desc: clean(row.desc),
+
+                img: clean(row.img)
+
+            }))
+
+            .filter(product => product.id);
+
+        res.json({
+
+            ok: true,
+
+            products
+
         });
-
-      }
-
-      const sheet = await getSheet("Products");
-
-      const rows = await sheet.getRows();
-
-      const productId =
-        id || Date.now().toString();
-
-      const existing = rows.find(
-        r => String(r.id).trim() === String(productId).trim()
-      );
-
-      if (existing) {
-
-        existing.name = name;
-        existing.price = Number(price);
-        existing.desc = desc || "";
-        existing.img = img || "";
-
-        await existing.save();
-
-        return res.json({
-          ok: true,
-          action: "updated"
-        });
-
-      }
-
-      await sheet.addRow({
-
-        id: productId,
-
-        name,
-
-        price: Number(price),
-
-        desc: desc || "",
-
-        img: img || ""
-
-      });
-
-      res.json({
-        ok: true,
-        action: "created"
-      });
-
-    } catch (err) {
-
-      res.status(500).json({
-        ok: false,
-        error: err.message
-      });
 
     }
 
-  }
-);
+    catch (err) {
 
-app.post(
-  "/api/products/delete",
-  verifyAdmin,
-  async (req, res) => {
+        console.error(err);
 
-    try {
+        res.status(500).json({
 
-      const { id } = req.body;
+            ok: false,
 
-      if (!id) {
+            error: err.message
 
-        return res.status(400).json({
-          ok: false,
-          error: "Missing product ID"
         });
-
-      }
-
-      const sheet = await getSheet("Products");
-
-      const rows = await sheet.getRows();
-
-      const row = rows.find(
-        r => String(r.id).trim() === String(id).trim()
-      );
-
-      if (!row) {
-
-        return res.status(404).json({
-          ok: false,
-          error: "Product not found"
-        });
-
-      }
-
-      await row.delete();
-
-      res.json({
-        ok: true
-      });
-
-    } catch (err) {
-
-      res.status(500).json({
-        ok: false,
-        error: err.message
-      });
 
     }
 
-  }
+});
+
+/* ======================================
+   CREATE / UPDATE PRODUCT
+====================================== */
+
+app.post(
+
+    "/api/products/save",
+
+    verifyAdmin,
+
+    async (req, res) => {
+
+        try {
+
+            const id =
+                clean(req.body.id);
+
+            const name =
+                clean(req.body.name);
+
+            const price =
+                number(req.body.price);
+
+            const desc =
+                clean(req.body.desc);
+
+            const img =
+                clean(req.body.img);
+
+            if (!name) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error: "Product name is required"
+
+                });
+
+            }
+
+            if (price <= 0) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error: "Price must be greater than zero"
+
+                });
+
+            }
+
+            const sheet =
+                await getSheet("Products");
+
+            const rows =
+                await sheet.getRows();
+
+            const existing =
+                rows.find(
+
+                    row =>
+
+                        clean(row.id) === id
+
+                );
+
+            if (existing) {
+
+                existing.name = name;
+                existing.price = price;
+                existing.desc = desc;
+                existing.img = img;
+
+                await existing.save();
+
+                return res.json({
+
+                    ok: true,
+
+                    action: "updated",
+
+                    product: {
+
+                        id,
+
+                        name,
+
+                        price,
+
+                        desc,
+
+                        img
+
+                    }
+
+                });
+
+            }
+
+            const product = {
+
+                id:
+                    Date.now().toString(),
+
+                name,
+
+                price,
+
+                desc,
+
+                img
+
+            };
+
+            await sheet.addRow(product);
+
+            res.json({
+
+                ok: true,
+
+                action: "created",
+
+                product
+
+            });
+
+        }
+
+        catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+
+                ok: false,
+
+                error: err.message
+
+            });
+
+        }
+
+    }
+
 );
 
-app.get('/debug-sheet', async (req,res)=>{
+/* ======================================
+   DELETE PRODUCT
+====================================== */
 
-  const doc = getDoc();
+app.post(
 
-  await doc.loadInfo();
+    "/api/products/delete",
 
-  res.json({
-    sheetId:SHEET_ID,
-    tabs:Object.keys(doc.sheetsByTitle)
-  });
+    verifyAdmin,
 
-});
-/* =======================
-   ORDERS
-======================= */
-/* =======================
-   SAVE ORDER
-======================= */
+    async (req, res) => {
+
+        try {
+
+            const id =
+                clean(req.body.id);
+
+            if (!id) {
+
+                return res.status(400).json({
+
+                    ok: false,
+
+                    error: "Product ID required"
+
+                });
+
+            }
+
+            const sheet =
+                await getSheet("Products");
+
+            const rows =
+                await sheet.getRows();
+
+            const row =
+                rows.find(
+
+                    r => clean(r.id) === id
+
+                );
+
+            if (!row) {
+
+                return res.status(404).json({
+
+                    ok: false,
+
+                    error: "Product not found"
+
+                });
+
+            }
+
+            await row.delete();
+
+            res.json({
+
+                ok: true
+
+            });
+
+        }
+
+        catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+
+                ok: false,
+
+                error: err.message
+
+            });
+
+        }
+
+    }
+
+);
+
+/* ======================================
+   GET SINGLE PRODUCT
+====================================== */
+
+app.get(
+
+    "/api/products/:id",
+
+    async (req, res) => {
+
+        try {
+
+            const id =
+                clean(req.params.id);
+
+            const sheet =
+                await getSheet("Products");
+
+            const rows =
+                await sheet.getRows();
+
+            const row =
+                rows.find(
+
+                    r => clean(r.id) === id
+
+                );
+
+            if (!row) {
+
+                return res.status(404).json({
+
+                    ok: false,
+
+                    error: "Product not found"
+
+                });
+
+            }
+
+            res.json({
+
+                ok: true,
+
+                product: {
+
+                    id: clean(row.id),
+
+                    name: clean(row.name),
+
+                    price: number(row.price),
+
+                    desc: clean(row.desc),
+
+                    img: clean(row.img)
+
+                }
+
+            });
+
+        }
+
+        catch (err) {
+
+            console.error(err);
+
+            res.status(500).json({
+
+                ok: false,
+
+                error: err.message
+
+            });
+
+        }
+
+    }
+
+);
 /* =======================
    GET ORDERS
 ======================= */

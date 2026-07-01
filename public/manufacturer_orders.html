@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>DreamMode Orders</title>
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+body{
+background:#f5f7fb;
+color:#222;
+overflow-x:hidden;
+}
+
+.hidden{
+display:none!important;
+}
+
+/* ======================
+LOGIN
+====================== */
+
+.login-modal{
+position:fixed;
+inset:0;
+display:flex;
+justify-content:center;
+align-items:center;
+background:rgba(0,0,0,.65);
+backdrop-filter:blur(8px);
+z-index:1000;
+}
+
+.login-card{
+width:360px;
+background:white;
+padding:40px;
+border-radius:18px;
+box-shadow:0 20px 50px rgba(0,0,0,.2);
+text-align:center;
+}
+
+.login-card h1{
+font-size:30px;
+color:#2563eb;
+margin-bottom:8px;
+}
+
+.login-card p{
+margin-bottom:25px;
+color:#666;
+}
+
+.login-card input{
+width:100%;
+padding:14px;
+border-radius:10px;
+border:1px solid #ddd;
+font-size:15px;
+outline:none;
+margin-bottom:18px;
+}
+
+.login-card button{
+width:100%;
+padding:14px;
+border:none;
+border-radius:10px;
+background:#2563eb;
+color:white;
+cursor:pointer;
+font-size:15px;
+transition:.3s;
+}
+
+.login-card button:hover{
+background:#1d4ed8;
+}
+
+.login-error{
+display:none;
+margin-top:15px;
+color:#ef4444;
+}
+
+/* ======================
+LOADING
+====================== */
+
+.loading{
+position:fixed;
+inset:0;
+display:flex;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+background:rgba(255,255,255,.75);
+backdrop-filter:blur(4px);
+z-index:2000;
+}
+
+.spinner{
+width:55px;
+height:55px;
+border-radius:50%;
+border:5px solid #ddd;
+border-top:5px solid #2563eb;
+animation:spin 1s linear infinite;
+margin-bottom:20px;
+}
+
+@keyframes spin{
+100%{
+transform:rotate(360deg);
+}
+}
+
+/* ======================
+TOAST
+====================== */
+
+.toast{
+position:fixed;
+top:25px;
+right:25px;
+background:#111827;
+color:white;
+padding:15px 22px;
+border-radius:12px;
+opacity:0;
+transform:translateY(-20px);
+transition:.3s;
+z-index:5000;
+}
+
+.toast.show{
+opacity:1;
+transform:translateY(0);
+}
+
+/* ======================
+APP
+====================== */
+
+#app{
+display:flex;
+min-height:100vh;
+}
+
+/* Sidebar */
+
+.sidebar{
+width:250px;
+background:#111827;
+color:white;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+padding:30px 20px;
+}
+
+.brand h1{
+font-size:28px;
+margin-bottom:5px;
+}
+
+.brand p{
+opacity:.7;
+font-size:14px;
+}
+
+.sidebar nav{
+margin-top:45px;
+display:flex;
+flex-direction:column;
+gap:15px;
+}
+
+.sidebar nav a{
+text-decoration:none;
+color:white;
+padding:14px 18px;
+border-radius:12px;
+transition:.3s;
+}
+
+.sidebar nav a:hover{
+background:#1f2937;
+}
+
+.sidebar nav .active{
+background:#2563eb;
+}
+
+.logout-btn{
+padding:14px;
+border:none;
+background:#ef4444;
+color:white;
+border-radius:12px;
+cursor:pointer;
+}
+
+/* Content */
+
+.content{
+flex:1;
+padding:35px;
+}
+
+.header{
+margin-bottom:30px;
+}
+
+.header h1{
+font-size:34px;
+margin-bottom:8px;
+}
+
+.header p{
+color:#666;
+}
+
+/* Toolbar */
+
+.toolbar{
+display:flex;
+gap:15px;
+flex-wrap:wrap;
+margin-bottom:25px;
+}
+
+.toolbar input,
+.toolbar select{
+padding:13px;
+border-radius:12px;
+border:1px solid #ddd;
+font-size:15px;
+outline:none;
+}
+
+.toolbar input{
+flex:1;
+min-width:250px;
+}
+
+.toolbar button{
+padding:13px 25px;
+border:none;
+background:#2563eb;
+color:white;
+border-radius:12px;
+cursor:pointer;
+}
+
+/* Summary */
+
+.summary{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:25px;
+}
+
+.summary h2{
+font-size:28px;
+}
+
+.summary p{
+color:#666;
+}
+
+/* ======================
+ORDER CARDS
+====================== */
+
+.orders-container{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+gap:25px;
+}
+
+.order-card{
+background:white;
+border-radius:18px;
+padding:25px;
+box-shadow:0 12px 30px rgba(0,0,0,.08);
+transition:.3s;
+}
+
+.order-card:hover{
+transform:translateY(-5px);
+}
+
+.customer{
+font-size:22px;
+font-weight:600;
+margin-bottom:6px;
+}
+
+.phone{
+color:#666;
+margin-bottom:20px;
+}
+
+.section-title{
+font-weight:600;
+margin-bottom:10px;
+}
+
+.items{
+background:#f8fafc;
+padding:15px;
+border-radius:12px;
+margin-bottom:20px;
+}
+
+.items div{
+padding:6px 0;
+border-bottom:1px solid #e5e7eb;
+}
+
+.items div:last-child{
+border:none;
+}
+
+.total{
+font-size:24px;
+font-weight:700;
+color:#2563eb;
+margin-bottom:15px;
+}
+
+.order-time{
+font-size:14px;
+color:#666;
+margin-bottom:20px;
+}
+
+.status{
+display:inline-block;
+padding:8px 16px;
+border-radius:30px;
+font-size:14px;
+font-weight:600;
+margin-bottom:18px;
+}
+
+.pending{
+background:#fff7ed;
+color:#ea580c;
+}
+
+.delivered{
+background:#ecfdf5;
+color:#16a34a;
+}
+
+.deliver-btn{
+width:100%;
+padding:14px;
+border:none;
+border-radius:12px;
+background:#16a34a;
+color:white;
+cursor:pointer;
+font-size:15px;
+transition:.3s;
+}
+
+.deliver-btn:hover{
+background:#15803d;
+}
+
+.deliver-btn:disabled{
+background:#94a3b8;
+cursor:not-allowed;
+}
+
+/* Empty */
+
+.empty{
+grid-column:1/-1;
+text-align:center;
+padding:80px;
+background:white;
+border-radius:18px;
+box-shadow:0 10px 30px rgba(0,0,0,.08);
+color:#64748b;
+}
+
+.empty h2{
+font-size:50px;
+margin-bottom:20px;
+}
+
+/* Responsive */
+
+@media(max-width:900px){
+
+.sidebar{
+width:85px;
+padding:20px 10px;
+}
+
+.brand p,
+.sidebar nav a{
+font-size:0;
+}
+
+.brand h1{
+font-size:20px;
+}
+
+.content{
+padding:20px;
+}
+
+}
+
+@media(max-width:700px){
+
+#app{
+flex-direction:column;
+}
+
+.sidebar{
+width:100%;
+flex-direction:row;
+align-items:center;
+padding:15px;
+}
+
+.sidebar nav{
+flex-direction:row;
+margin:0;
+}
+
+.orders-container{
+grid-template-columns:1fr;
+}
+
+.summary{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
+}
+
+.toolbar{
+flex-direction:column;
+}
+
+.toolbar input{
+min-width:100%;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- ===========================
+LOGIN
+=========================== -->
+
+<div
+id="loginModal"
+class="login-modal">
+
+<div
+class="login-card">
+
+<h1>
+
+DreamMode
+
+</h1>
+
+<p>
+
+Manufacturer Orders
+
+</p>
+
+<input
+id="adminPassword"
+type="password"
+placeholder="Admin Password">
+
+<button
+id="loginBtn">
+
+Login
+
+</button>
+
+<p
+id="loginError"
+class="login-error">
+
+Wrong Password
+
+</p>
+
+</div>
+
+</div>
+
+<!-- ===========================
+LOADING
+=========================== -->
+
+<div
+id="loading"
+class="loading hidden">
+
+<div class="spinner"></div>
+
+<p>
+
+Loading...
+
+</p>
+
+</div>
+
+<!-- ===========================
+TOAST
+=========================== -->
+
+<div
+id="toast"
+class="toast">
+
+</div>
+
+<!-- ===========================
+MAIN APP
+=========================== -->
+
+<div
+id="app"
+class="hidden">
+
+<!-- Sidebar -->
+
+<aside
+class="sidebar">
+
+<div class="brand">
+
+<h1>
+
+DreamMode
+
+</h1>
+
+<p>
+
+Manufacturer
+
+</p>
+
+</div>
+
+<nav>
+
+<a
+href="manufacturer_products.html">
+
+📦 Products
+
+</a>
+
+<a
+href="manufacturer_orders.html"
+class="active">
+
+🛒 Orders
+
+</a>
+
+</nav>
+
+<button
+id="logoutBtn"
+class="logout-btn">
+
+Logout
+
+</button>
+
+</aside>
+
+<!-- ===========================
+CONTENT
+=========================== -->
+
+<main
+class="content">
+
+<header
+class="header">
+
+<div>
+
+<h1>
+
+Orders
+
+</h1>
+
+<p>
+
+Manage customer orders
+
+</p>
+
+</div>
+
+</header>
+
+<!-- ===========================
+SEARCH & FILTER
+=========================== -->
+
+<div
+class="toolbar">
+
+<input
+id="searchInput"
+type="text"
+placeholder="Search customer or phone...">
+
+<select
+id="statusFilter">
+
+<option value="All">
+
+All Orders
+
+</option>
+
+<option value="Pending">
+
+Pending
+
+</option>
+
+<option value="Delivered">
+
+Delivered
+
+</option>
+
+</select>
+
+<button
+id="refreshBtn">
+
+Refresh
+
+</button>
+
+</div>
+
+<!-- ===========================
+ORDER COUNT
+=========================== -->
+
+<div
+class="summary">
+
+<h2>
+
+Customer Orders
+
+</h2>
+
+<p
+id="orderCount">
+
+0 Orders
+
+</p>
+
+</div>
+
+<!-- ===========================
+ORDER LIST
+=========================== -->
+
+<div
+id="ordersContainer"
+class="orders-container">
+
+<!-- Orders inserted here -->
+
+</div>
+
+</main>
+
+</div>
+
+<script>
+
+/* ==========================================
+   CONFIG
+========================================== */
+
+const API = "";
+
+let adminPassword = "";
+let allOrders = [];
+
+/* ==========================================
+   ELEMENTS
+========================================== */
+
+const loginModal = document.getElementById("loginModal");
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const app = document.getElementById("app");
+
+const loading = document.getElementById("loading");
+
+const toast = document.getElementById("toast");
+
+const ordersContainer =
+document.getElementById("ordersContainer");
+
+const orderCount =
+document.getElementById("orderCount");
+
+const searchInput =
+document.getElementById("searchInput");
+
+const statusFilter =
+document.getElementById("statusFilter");
+
+const refreshBtn =
+document.getElementById("refreshBtn");
+
+/* ==========================================
+   HELPERS
+========================================== */
+
+function showLoading(){
+
+loading.classList.remove("hidden");
+
+}
+
+function hideLoading(){
+
+loading.classList.add("hidden");
+
+}
+
+function showToast(message){
+
+toast.innerText = message;
+
+toast.classList.add("show");
+
+setTimeout(()=>{
+
+toast.classList.remove("show");
+
+},2500);
+
+}
+
+/* ==========================================
+   LOGIN
+========================================== */
+
+loginBtn.onclick = async()=>{
+
+const password =
+
+document
+.getElementById("adminPassword")
+.value
+.trim();
+
+if(!password){
+
+showToast("Enter password");
+
+return;
+
+}
+
+showLoading();
+
+try{
+
+const res =
+
+await fetch(
+
+API+"/api/admin/auth",
+
+{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":"application/json"
+
+},
+
+body:JSON.stringify({
+
+password
+
+})
+
+}
+
+);
+
+const data =
+
+await res.json();
+
+hideLoading();
+
+if(!data.ok){
+
+document
+.getElementById("loginError")
+.style.display="block";
+
+return;
+
+}
+
+adminPassword = password;
+
+localStorage.setItem(
+
+"adminPassword",
+
+password
+
+);
+
+loginModal.style.display="none";
+
+app.classList.remove("hidden");
+
+loadOrders();
+
+}
+
+catch(err){
+
+hideLoading();
+
+showToast(err.message);
+
+}
+
+};
+
+/* ==========================================
+   AUTO LOGIN
+========================================== */
+
+window.onload=()=>{
+
+const saved=
+
+localStorage.getItem(
+
+"adminPassword"
+
+);
+
+if(saved){
+
+adminPassword=saved;
+
+loginModal.style.display="none";
+
+app.classList.remove("hidden");
+
+loadOrders();
+
+}
+
+};
+
+/* ==========================================
+   LOAD ORDERS
+========================================== */
+
+async function loadOrders(){
+
+showLoading();
+
+try{
+
+const res=
+
+await fetch(
+
+API+"/api/orders"
+
+);
+
+const data=
+
+await res.json();
+
+allOrders=
+
+Array.isArray(data)
+
+? data
+
+: data.orders || [];
+
+renderOrders();
+
+hideLoading();
+
+}
+
+catch(err){
+
+hideLoading();
+
+showToast(err.message);
+
+}
+
+}
+
+/* ==========================================
+   RENDER
+========================================== */
+
+function renderOrders(){
+
+ordersContainer.innerHTML="";
+
+const keyword=
+
+searchInput.value
+.toLowerCase()
+.trim();
+
+const filter=
+
+statusFilter.value;
+
+let orders=
+
+allOrders.filter(order=>{
+
+const customer=
+
+(order.name||"")
+
+.toLowerCase();
+
+const phone=
+
+(order.phone||"")
+
+.toLowerCase();
+
+const search=
+
+customer.includes(keyword)
+
+||
+
+phone.includes(keyword);
+
+const status=
+
+filter==="All"
+
+||
+
+order.status===filter;
+
+return search && status;
+
+});
+
+orderCount.innerText=
+
+orders.length+
+
+" Orders";
+
+if(orders.length===0){
+
+ordersContainer.innerHTML=
+
+`
+
+<div class="empty">
+
+<h2>
+
+📦
+
+</h2>
+
+<p>
+
+No orders found
+
+</p>
+
+</div>
+
+`;
+
+return;
+
+}
+
+orders.forEach(order=>{
+
+let itemsHTML="";
+
+(order.items||[]).forEach(item=>{
+
+itemsHTML+=`
+
+<div>
+
+${item.name}
+
+× ${item.qty}
+
+</div>
+
+`;
+
+});
+
+const delivered=
+
+order.status==="Delivered";
+
+const card=
+
+document.createElement("div");
+
+card.className="order-card";
+
+card.innerHTML=
+
+`
+
+<div class="customer">
+
+${order.name}
+
+</div>
+
+<div class="phone">
+
+📞 ${order.phone}
+
+</div>
+
+<div class="section-title">
+
+Items
+
+</div>
+
+<div class="items">
+
+${itemsHTML}
+
+</div>
+
+<div class="total">
+
+₦${Number(order.total).toLocaleString()}
+
+</div>
+
+<div class="order-time">
+
+${order.date || ""}
+
+</div>
+
+<div class="status ${delivered ? 'delivered':'pending'}">
+
+${order.status}
+
+</div>
+
+<button
+
+class="deliver-btn"
+
+${delivered ? "disabled":""}
+
+onclick="markDelivered('${order.id}')">
+
+${delivered ? "Delivered":"Mark Delivered"}
+
+</button>
+
+`;
+
+ordersContainer.appendChild(card);
+
+});
+
+}
+
+/* ==========================================
+   EVENTS
+========================================== */
+
+searchInput.oninput=renderOrders;
+
+statusFilter.onchange=renderOrders;
+
+refreshBtn.onclick=loadOrders;
+/* ==========================================
+   MARK ORDER AS DELIVERED
+========================================== */
+
+async function markDelivered(id){
+
+    const ok = confirm(
+        "Mark this order as delivered?"
+    );
+
+    if(!ok) return;
+
+    showLoading();
+
+    try{
+
+        const res = await fetch(
+
+            API + "/api/orders/update",
+
+            {
+
+                method:"POST",
+
+                headers:{
+
+                    "Content-Type":"application/json"
+
+                },
+
+                body:JSON.stringify({
+
+                    password:adminPassword,
+
+                    id,
+
+                    status:"Delivered"
+
+                })
+
+            }
+
+        );
+
+        const data = await res.json();
+
+        hideLoading();
+
+        if(!data.ok){
+
+            showToast(
+
+                data.error ||
+
+                "Unable to update order"
+
+            );
+
+            return;
+
+        }
+
+        showToast(
+
+            "Order marked as delivered"
+
+        );
+
+        const order = allOrders.find(
+
+            o => o.id === id
+
+        );
+
+        if(order){
+
+            order.status = "Delivered";
+
+        }
+
+        renderOrders();
+
+    }
+
+    catch(err){
+
+        hideLoading();
+
+        showToast(err.message);
+
+    }
+
+}
+
+/* ==========================================
+   LOGOUT
+========================================== */
+
+logoutBtn.onclick = ()=>{
+
+    const ok = confirm(
+
+        "Logout?"
+
+    );
+
+    if(!ok) return;
+
+    localStorage.removeItem(
+
+        "adminPassword"
+
+    );
+
+    location.reload();
+
+};
+
+/* ==========================================
+   ENTER TO LOGIN
+========================================== */
+
+document
+
+.getElementById(
+
+"adminPassword"
+
+)
+
+.addEventListener(
+
+"keydown",
+
+e=>{
+
+    if(e.key==="Enter"){
+
+        loginBtn.click();
+
+    }
+
+});
+
+/* ==========================================
+   AUTO REFRESH
+========================================== */
+
+setInterval(()=>{
+
+    if(
+
+        !app.classList.contains(
+
+            "hidden"
+
+        )
+
+    ){
+
+        loadOrders();
+
+    }
+
+},30000);
+
+/* ==========================================
+   OPTIONAL:
+   FORMAT DATE
+========================================== */
+
+function formatDate(dateString){
+
+    if(!dateString) return "";
+
+    const d = new Date(dateString);
+
+    if(isNaN(d)){
+
+        return dateString;
+
+    }
+
+    return d.toLocaleString();
+
+}
+</script>
+
+</body>
+
+</html>
