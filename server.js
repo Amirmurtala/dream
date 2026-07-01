@@ -107,38 +107,6 @@ async function getSheet(title) {
   return sheet;
 }
 
-function verifyAdmin(req, res, next) {
-
-    const auth = req.headers.authorization;
-
-    if (!auth) {
-        return res.status(401).json({
-            ok: false,
-            error: "No token"
-        });
-    }
-
-    const token = auth.replace("Bearer ", "");
-
-    try {
-
-        jwt.verify(
-            token,
-            process.env.JWT_SECRET
-        );
-
-        next();
-
-    } catch {
-
-        res.status(401).json({
-            ok: false,
-            error: "Invalid token"
-        });
-
-    }
-
-}
 /* =======================
    ROUTES - HTML FIX
 ======================= */
@@ -166,40 +134,116 @@ app.get('/api/admin/auth', (req,res)=>{
   });
 });
 
+/* =======================
+   ADMIN AUTH
+======================= */
+
+const jwt = require("jsonwebtoken");
+
+const ADMIN_PASSWORD =
+  process.env.ADMIN_PASSWORD || "admin123";
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "dreammode-secret";
+
+/* Login */
+
 app.post("/api/admin/auth", (req, res) => {
+
+  try {
 
     const { password } = req.body;
 
     if (!password) {
-        return res.status(400).json({
-            ok: false,
-            error: "Password required"
-        });
+      return res.status(400).json({
+        ok: false,
+        error: "Password required"
+      });
     }
 
     if (password !== ADMIN_PASSWORD) {
-        return res.status(401).json({
-            ok: false,
-            error: "Invalid password"
-        });
+      return res.status(401).json({
+        ok: false,
+        error: "Invalid password"
+      });
     }
 
     const token = jwt.sign(
-        {
-            role: "admin"
-        },
-        process.env.JWT_SECRET,
-        {
-            expiresIn: "24h"
-        }
+      {
+        role: "admin"
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "24h"
+      }
     );
 
     res.json({
-        ok: true,
-        token
+      ok: true,
+      token
     });
 
+  } catch (err) {
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+
+  }
+
 });
+
+/* Verify Token */
+
+function verifyAdmin(req, res, next) {
+
+  const auth =
+    req.headers.authorization;
+
+  if (!auth) {
+    return res.status(401).json({
+      ok: false,
+      error: "Unauthorized"
+    });
+  }
+
+  const token =
+    auth.replace("Bearer ", "");
+
+  try {
+
+    jwt.verify(
+      token,
+      JWT_SECRET
+    );
+
+    next();
+
+  } catch {
+
+    res.status(401).json({
+      ok: false,
+      error: "Token expired"
+    });
+
+  }
+
+}
+
+/* Check Login */
+
+app.get(
+  "/api/admin/check",
+  verifyAdmin,
+  (req, res) => {
+
+    res.json({
+      ok: true
+    });
+
+  }
+);
 
 app.get("/api/admin/check", verifyAdmin, (req,res)=>{
 
@@ -278,79 +322,34 @@ app.post('/api/user/session', async (req, res) => {
 /* =======================
    PRODUCTS
 ======================= */
-app.get('/api/products', async (req, res) => {
+/* =======================
+   PRODUCTS
+======================= */
+
+app.get("/api/products", async (req, res) => {
+
   try {
-    const sheet = await getSheet('Products');
+
+    const sheet = await getSheet("Products");
     const rows = await sheet.getRows();
 
-const {
+    const products = rows
+      .map(r => ({
+        id: String(r.id || "").trim(),
+        name: String(r.name || "").trim(),
+        price: Number(r.price || 0),
+        desc: String(r.desc || "").trim(),
+        img: String(r.img || "").trim()
+      }))
+      .filter(p => p.id !== "");
 
-    name,
-    price,
-    desc,
-    img
+    res.json(products);
 
-} = req.body;
-
-if(!name){
-
-    return res.status(400).json({
-        ok:false,
-        error:"Product name required"
-    });
-
-}
-
-if(!price){
-
-    return res.status(400).json({
-        ok:false,
-        error:"Product price required"
-    });
-
-}
-app.post(
-    "/api/products/save",
-    verifyAdmin,
-    async (req,res)=>{
-
-  try {
-
-    const { name, price, desc, img } = req.body;
-
-    if (!name || !String(name).trim()) {
-      return res.status(400).json({
-        ok:false,
-        error:"Product name required"
-      });
-    }
-
-    if (!price) {
-      return res.status(400).json({
-        ok:false,
-        error:"Product price required"
-      });
-    }
-
-    const sheet = await getSheet('Products');
-
-    await sheet.addRow({
-      id: Date.now().toString(),
-      name: String(name).trim(),
-      price: Number(price),
-      desc: desc || "",
-      img: img || ""
-    });
-
-    res.json({
-      ok:true
-    });
-
-  } catch(err) {
+  } catch (err) {
 
     res.status(500).json({
-      ok:false,
-      error:err.message
+      ok: false,
+      error: err.message
     });
 
   }
@@ -358,43 +357,142 @@ app.post(
 });
 
 app.post(
-    "/api/products/delete",
-    verifyAdmin,
-    async(req,res)=>{
-  try {
+  "/api/products/save",
+  verifyAdmin,
+  async (req, res) => {
+console.log("BODY:", req.body);
+    try {
 
-    const sheet = await getSheet('Products');
-    const rows = await sheet.getRows();
+      const {
 
-    const id = String(req.body.id);
+        id,
+        name,
+        price,
+        desc,
+        img
 
-    const row = rows.find(
-      r => String(r.id) === id
-    );
+      } = req.body;
 
-    if (!row) {
-      return res.status(404).json({
-        ok:false,
-        error:"Product not found"
+      if (!name || !price) {
+
+        return res.status(400).json({
+          ok: false,
+          error: "Name and price are required"
+        });
+
+      }
+
+      const sheet = await getSheet("Products");
+
+      const rows = await sheet.getRows();
+
+      const productId =
+        id || Date.now().toString();
+
+      const existing = rows.find(
+        r => String(r.id).trim() === String(productId).trim()
+      );
+
+      if (existing) {
+
+        existing.name = name;
+        existing.price = Number(price);
+        existing.desc = desc || "";
+        existing.img = img || "";
+
+        await existing.save();
+
+        return res.json({
+          ok: true,
+          action: "updated"
+        });
+
+      }
+
+      await sheet.addRow({
+
+        id: productId,
+
+        name,
+
+        price: Number(price),
+
+        desc: desc || "",
+
+        img: img || ""
+
       });
+
+      res.json({
+        ok: true,
+        action: "created"
+      });
+
+    } catch (err) {
+
+      res.status(500).json({
+        ok: false,
+        error: err.message
+      });
+
     }
 
-    await row.delete();
+  }
+);
 
-    res.json({
-      ok:true
-    });
+app.post(
+  "/api/products/delete",
+  verifyAdmin,
+  async (req, res) => {
 
-  } catch(err) {
+    try {
 
-    res.status(500).json({
-      ok:false,
-      error:err.message
-    });
+      const { id } = req.body;
+
+      if (!id) {
+
+        return res.status(400).json({
+          ok: false,
+          error: "Missing product ID"
+        });
+
+      }
+
+      const sheet = await getSheet("Products");
+
+      const rows = await sheet.getRows();
+
+      const row = rows.find(
+        r => String(r.id).trim() === String(id).trim()
+      );
+
+      if (!row) {
+
+        return res.status(404).json({
+          ok: false,
+          error: "Product not found"
+        });
+
+      }
+
+      await row.delete();
+
+      res.json({
+        ok: true
+      });
+
+    } catch (err) {
+
+      res.status(500).json({
+        ok: false,
+        error: err.message
+      });
+
+    }
 
   }
+);
 
-});
 app.get('/debug-sheet', async (req,res)=>{
 
   const doc = getDoc();
@@ -410,33 +508,257 @@ app.get('/debug-sheet', async (req,res)=>{
 /* =======================
    ORDERS
 ======================= */
-app.get('/api/orders', async (req, res) => {
-  const sheet = await getSheet('Orders');
-  const rows = await sheet.getRows();
+/* =======================
+   SAVE ORDER
+======================= */
+/* =======================
+   GET ORDERS
+======================= */
+app.get("/api/orders", async (req, res) => {
 
-  res.json(rows.map(r => ({
-    id: r.id,
-    customer: r.customer,
-    phone: r.phone,
-    total: r.total,
-    status: r.status
-  })));
+    try {
+
+        const sheet = await getSheet("Orders");
+
+        const rows = await sheet.getRows();
+
+        const orders = rows.map(r => ({
+
+            id: String(r.id),
+
+            customer: r.customer,
+
+            phone: r.phone,
+
+            items: JSON.parse(r.items || "[]"),
+
+            total: Number(r.total || 0),
+
+            status: r.status,
+
+            time: r.time
+
+        }));
+
+        res.json(orders);
+
+    } catch (err) {
+
+        res.status(500).json({
+            ok: false,
+            error: err.message
+        });
+
+    }
+
 });
 
-app.post('/api/orders/update', async (req, res) => {
-  const sheet = await getSheet('Orders');
-  const rows = await sheet.getRows();
+app.post("/api/orders/save", async (req, res) => {
 
- const row = rows.find(
-  r => String(r.id).trim() === id.trim()
+    try {
+
+        const {
+
+            customer,
+            phone,
+            items,
+            total
+
+        } = req.body;
+
+        if (!customer || !phone || !items || !items.length) {
+
+            return res.status(400).json({
+                ok: false,
+                error: "Incomplete order"
+            });
+
+        }
+
+        const sheet = await getSheet("Orders");
+
+        await sheet.addRow({
+
+            id: Date.now().toString(),
+
+            time: new Date().toISOString(),
+
+            customer,
+
+            phone,
+
+            items: JSON.stringify(items),
+
+            total: Number(total),
+
+            status: "Pending"
+
+        });
+
+        res.json({
+            ok: true
+        });
+
+    } catch (err) {
+
+        res.status(500).json({
+            ok: false,
+            error: err.message
+        });
+
+    }
+
+});
+
+/* =======================
+   UPDATE ORDER
+======================= */
+app.post(
+
+    "/api/orders/update",
+
+    verifyAdmin,
+
+    async (req, res) => {
+
+        try {
+
+            const {
+
+                id,
+                status
+
+            } = req.body;
+
+            const sheet =
+                await getSheet("Orders");
+
+            const rows =
+                await sheet.getRows();
+
+            const row =
+                rows.find(
+
+                    r =>
+                    String(r.id).trim() ===
+                    String(id).trim()
+
+                );
+
+            if (!row) {
+
+                return res.status(404).json({
+
+                    ok: false,
+
+                    error: "Order not found"
+
+                });
+
+            }
+
+            row.status = status;
+
+            await row.save();
+
+            res.json({
+
+                ok: true
+
+            });
+
+        } catch (err) {
+
+            res.status(500).json({
+
+                ok: false,
+
+                error: err.message
+
+            });
+
+        }
+
+    }
+
 );
-  if (!row) return res.status(404).json({ error: "not found" });
+/* =======================
+   DASHBOARD
+======================= */
+app.get(
 
-  row.status = req.body.status;
-  await row.save();
+    "/api/dashboard",
 
-  res.json({ ok: true });
-});
+    verifyAdmin,
+
+    async (req, res) => {
+
+        try {
+
+            const productSheet =
+                await getSheet("Products");
+
+            const orderSheet =
+                await getSheet("Orders");
+
+            const products =
+                await productSheet.getRows();
+
+            const orders =
+                await orderSheet.getRows();
+
+            const revenue =
+                orders.reduce(
+
+                    (sum, o) =>
+
+                    sum +
+                    Number(o.total || 0),
+
+                    0
+
+                );
+
+            const delivered =
+                orders.filter(
+
+                    o =>
+
+                    o.status === "Delivered"
+
+                ).length;
+
+            res.json({
+
+                ok: true,
+
+                products:
+                    products.length,
+
+                orders:
+                    orders.length,
+
+                delivered,
+
+                revenue
+
+            });
+
+        } catch (err) {
+
+            res.status(500).json({
+
+                ok: false,
+
+                error: err.message
+
+            });
+
+        }
+
+    }
+
+);
 
 /* =======================
    START SERVER (RENDER SAFE)
