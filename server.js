@@ -11,7 +11,6 @@ const app = express();
    CONFIG
 ====================================== */
 
-const PORT = process.env.PORT || 10000;
 
 const ADMIN_PASSWORD =
     process.env.ADMIN_PASSWORD || "admin123";
